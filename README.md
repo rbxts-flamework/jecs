@@ -21,8 +21,7 @@ start({}, () => {
 	}
 });
 
-// The second generic argument is the terms you would like to exclude in `Without`
-for (const [e, vec] of query<[Vector3], [CFrame]>()) {
+for (const [e, vec] of query<[Vector3, Without<[CFrame]>]>()) {
 	print(e, vec);
 }
 ```

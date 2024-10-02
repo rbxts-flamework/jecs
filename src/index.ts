@@ -297,15 +297,27 @@ export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean 
     return registry.has(entity as never, id)
 }
 
+export type Without<T> = { _flamecs_without: T };
+
+type Skip<T extends unknown[]> = T extends [unknown, ...infer R] ? R : [];
+
+type Calculate<T extends unknown[], W extends unknown[] = [], WO extends unknown[] = []> = T extends []
+	? { with: W; without: WO }
+	: T[0] extends Without<infer V>
+		? V extends unknown[]
+			? Calculate<Skip<T>, W, [...WO, ...V]>
+			: Calculate<Skip<T>, W, [...WO, V]>
+		: T[0] extends unknown[]
+			? Calculate<Skip<T>, [...W, ...T[0]], WO>
+			: Calculate<Skip<T>, [...W, T[0]], WO>;
+
+type ToIds<T> = { [k in keyof T]: Modding.Generic<T[k], "id"> }
+
 /** @metadata macro */
-export function query<With extends Array<unknown>, Without extends Array<unknown> = []>(
-    terms?: Modding.Many<{[
-        Term in keyof With]: Modding.Generic<With[Term], "id">
-    }>,
-    filter?: Modding.Many<{[
-        Term in keyof Without]: Modding.Generic<Without[Term], "id">
-    }>
-): Query<With> {
+export function query<T extends unknown[]>(
+    terms?: ToIds<Calculate<T>["with"]>,
+    filter?: ToIds<Calculate<T>["without"]>
+): Query<Calculate<T>["with"]> {
     assert(terms !== undefined)
     const ids = new Array<number>()
     for (const key of terms) {
