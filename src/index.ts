@@ -322,7 +322,7 @@ type ToIds<T> = Modding.Many<{
 }>;
 /** @metadata macro */
 export function query<T extends unknown[]>(
-    terms?: ToIds<Calculate<T>["with"]>,
+    terms?: ToIds<Calculate<T>["query"]>,
     filterWithout?: ToIds<Calculate<T>["without"]>,
     filterWith?: ToIds<Calculate<T>["with"]>
 ): Query<Reconstruct<Calculate<T>["query"]>> {
