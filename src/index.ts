@@ -297,41 +297,58 @@ export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean 
     return registry.has(entity as never, id)
 }
 
+/**
+ * Full credits to @fireboltofdeath for all of these types
+ */
 export type Without<T> = { _flamecs_without: T };
+type With<T> = { _flamework_with: T };
 
 type Skip<T extends unknown[]> = T extends [unknown, ...infer R] ? R : [];
 
-type Calculate<T extends unknown[], W extends unknown[] = [], WO extends unknown[] = []> = T extends []
-	? { with: W; without: WO }
+type Bounds = { query: unknown[]; with: unknown[]; without: unknown[]; };
+type BoundsTuple<T> = T extends readonly unknown[] & { length: number } ? T : [];
+type PushBound<B extends Bounds, K extends keyof B, V> = Omit<B, K> &
+	Record<K, V extends readonly unknown[] ? [...BoundsTuple<B[K]>, ...V] : [...BoundsTuple<B[K]>, V]>;
+
+type Calculate<T extends unknown[], B extends Bounds = Bounds> = T extends []
+	? { [k in keyof B]: BoundsTuple<B[k]> }
 	: T[0] extends Without<infer V>
-		? V extends unknown[]
-			? Calculate<Skip<T>, W, [...WO, ...V]>
-			: Calculate<Skip<T>, W, [...WO, V]>
-		: T[0] extends unknown[]
-			? Calculate<Skip<T>, [...W, ...T[0]], WO>
-			: Calculate<Skip<T>, [...W, T[0]], WO>;
-
-type ToIds<T> = { [k in keyof T]: Modding.Generic<T[k], "id"> }
-
+		? Calculate<Skip<T>, PushBound<B, "without", V>>
+	: T[0] extends With<infer V>
+		? Calculate<Skip<T>, PushBound<B, "with", V>>
+	: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
+type ToIds<T> = Modding.Many<{
+    [k in keyof T]: Modding.Generic<T[k], "id">;
+}>;
 /** @metadata macro */
 export function query<T extends unknown[]>(
     terms?: ToIds<Calculate<T>["with"]>,
-    filter?: ToIds<Calculate<T>["without"]>
-): Query<Calculate<T>["with"]> {
+    filterWithout?: ToIds<Calculate<T>["without"]>,
+    filterWith?: ToIds<Calculate<T>["with"]>
+): Query<Reconstruct<Calculate<T>["query"]>> {
     assert(terms !== undefined)
     const ids = new Array<number>()
     for (const key of terms) {
         const id = component(key)
         ids.push(id)
     }
-    const q = registry.query(...ids)
-    if (filter !== undefined) {
-        const ids = new Array<number>()
-        for (const key of filter) {
+    let q = registry.query(...ids)
+    if (filterWithout !== undefined) {
+        const filterWithoutIds = new Array<number>()
+        for (const key of filterWithout) {
             const id = component(key)
-            ids.push(id)
+            filterWithoutIds.push(id)
         }
-        return q.without(...ids) as never
+        q = q.without(...filterWithoutIds)
+    }
+
+    if (filterWith !== undefined) {
+        const filterWithIds = new Array<number>()
+        for (const key of filterWith) {
+            const id = component(key)
+            filterWithIds.push(id)
+        }
+        q = q.with(...filterWithIds)
     }
 
     return q as never
