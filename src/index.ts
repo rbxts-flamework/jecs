@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Modding, OnTick, Reflect } from "@flamework/core";
 import { RunService, Players } from "@rbxts/services";
-import * as ecs from "@rbxts/jecs";
+import ecs from "@rbxts/jecs";
 
 type State = {
     cleanup: Callback;

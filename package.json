@@ -1,6 +1,6 @@
 {
     "name": "@rbxts/flamecs",
-    "version": "0.1.0-rc.1",
+    "version": "0.1.0-rc.3",
     "description": "",
     "main": "out/init.lua",
     "scripts": {
