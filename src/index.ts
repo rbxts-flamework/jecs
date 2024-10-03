@@ -1,391 +1,508 @@
-/* eslint-disable prettier/prettier */
-import { Modding, OnTick, Reflect } from "@flamework/core";
-import { RunService, Players } from "@rbxts/services";
+import type { Modding } from "@flamework/core";
+import type { Entity } from "@rbxts/jecs";
 import ecs from "@rbxts/jecs";
+import { Players, RunService } from "@rbxts/services";
 
-type State = {
-    cleanup: Callback;
-    state: Record<string, unknown>;
-};
-
-interface StackFrame {
-    node: Record<string, State>;
+interface State {
+	cleanup: Callback;
+	state: Record<string, unknown>;
 }
 
-const stack: StackFrame[] = [];
+interface StackFrame {
+	node: Record<string, State>;
+}
+
+const stack: Array<StackFrame> = [];
 
 function addStackFrame(node: Record<string, State>): void {
-    const frame: StackFrame = {
-        node: node,
-    };
-    stack.push(frame);
+	const frame: StackFrame = {
+		node,
+	};
+	stack.push(frame);
 }
 
 function popStackFrame(): void {
-    stack.pop();
+	stack.pop();
 }
 
 function cleanupAll(): void {
-    const current = stack[stack.size() - 1];
+	const current = stack[stack.size() - 1]!;
 
-    for (const [key] of pairs(current.node)) {
-        const state = current.node[key];
-        for (const [discriminator] of pairs(state.state)) {
-            state.cleanup(state.state[discriminator]);
-        }
-    }
+	for (const [key] of pairs(current.node)) {
+		const state = current.node[key]!;
+		for (const [discriminator] of pairs(state.state)) {
+			state.cleanup(state.state[discriminator]);
+		}
+	}
 }
 
-
-export function start(node: Record<string, State>, fn: () => void): void {
-    addStackFrame(node);
-    fn();
-    cleanupAll();
-    popStackFrame();
+export function start(node: Record<string, State>, func: () => void): void {
+	addStackFrame(node);
+	func();
+	cleanupAll();
+	popStackFrame();
 }
 
-export function useHookState(key: string, discriminator: unknown, cb: (state: unknown) => void) {
-    const current = stack[stack.size() - 1];
+// eslint-disable-next-line ts/explicit-function-return-type -- Returns unknown.
+export function useHookState(
+	key: string,
+	discriminator: unknown,
+	callback: (state: unknown) => void,
+) {
+	const current = stack[stack.size() - 1]!;
+	let storage = current.node[key];
+	if (!storage) {
+		storage = { cleanup: callback, state: {} };
+		current.node[key] = storage;
+	}
 
-    let storage = current.node[key];
-    if (!storage) {
-        storage = { state: {}, cleanup: cb };
-        current.node[key] = storage;
-    }
+	discriminator ??= key;
+	const stringifiedKey = tostring(discriminator);
 
-    discriminator = discriminator ?? key;
-    const stringifiedKey = tostring(discriminator);
+	let state = storage.state[stringifiedKey];
+	if (state === undefined) {
+		state = {};
+		storage.state[stringifiedKey] = state;
+	}
 
-    let state = storage.state[stringifiedKey];
-    if (state === undefined) {
-        state = {};
-        storage.state[stringifiedKey] = state;
-    }
-
-    return state;
+	return state;
 }
 
-type Storage = { expiry: number };
-function cleanup(storage: Storage) {
-    return os.clock() < storage.expiry;
+interface Storage {
+	expiry: number;
+}
+
+function cleanup(storage: Storage): boolean {
+	return os.clock() < storage.expiry;
 }
 
 interface ThrottleStorage {
-    time?: number;
-    expiry?: number;
+	expiry?: number;
+	time?: number;
 }
 
 const STABLE_DISCRIMINATOR = {};
-/** @metadata macro */
-export function useThrottle(seconds: number, discriminator?: unknown, key?: Modding.Caller<"uuid">) {
-    assert(key);
 
-    const storage = useHookState(key, discriminator ?? STABLE_DISCRIMINATOR, cleanup as never) as ThrottleStorage;
+/**
+ * Utility for easy time-based throttling.
+ *
+ * Accepts a duration, and returns `true` if it has been that long since the
+ * last time this function returned `true`. Always returns `true` the first
+ * time.
+ *
+ * @param seconds - The number of seconds to throttle for.
+ * @param discriminator -- A unique value to additionally key by.
+ * @param key - An automatically generated key to store the throttle state.
+ * @returns - Returns true every x seconds, otherwise false.
+ * @metadata macro
+ */
+export function useThrottle(
+	seconds: number,
+	discriminator?: unknown,
+	key?: Modding.Caller<"uuid">,
+): boolean {
+	assert(key);
 
-    if (storage.time === undefined || os.clock() - storage.time >= seconds) {
-        storage.time = os.clock();
-        storage.expiry = os.clock() + seconds;
-        return true;
-    }
-    return false;
+	const storage = useHookState(
+		key,
+		discriminator ?? STABLE_DISCRIMINATOR,
+		cleanup as never,
+	) as ThrottleStorage;
+
+	if (storage.time === undefined || os.clock() - storage.time >= seconds) {
+		storage.time = os.clock();
+		storage.expiry = os.clock() + seconds;
+		return true;
+	}
+
+	return false;
 }
 
-export type Relation<T = Tag> = { type: "FLAMECS_RELATION"; value: T };
+export interface Relation<T = Tag> {
+	type: "FLAMECS_RELATION";
+	value: T;
+}
 
-type Id<T = undefined> = number & {
-    __T: T;
-};
+type Id<T = undefined> = {
+	__T: T;
+} & number;
 
-export type Tag = {
-    type: "FLAMECS_TAG";
-};
+export interface Tag {
+	type: "FLAMECS_TAG";
+}
 
-type Signal<T extends Array<unknown>> = {
-    fire: (...args: T) => void;
-    connect: (fn: (...args: T) => void) => void;
-};
+interface Signal<T extends Array<unknown>> {
+	connect: (func: (...args: T) => void) => void;
+	fire: (...args: T) => void;
+}
 
-
-const components = new Map<string, Id<unknown>>()
+const components = new Map<string, Id<unknown>>();
 
 function createSignal<T extends Array<unknown>>(): Signal<T> {
-    const listeners = new Array<(...args: T) => void>();
-    const fire = (...args: T) => {
-        for (const fn of listeners) {
-            fn(...args);
-        }
-    };
-    const connect = (fn: (...args: T) => void) => {
-        listeners.push(fn);
-    };
+	const listeners = new Array<(...args: T) => void>();
+	const fire = (...args: T): void => {
+		for (const func of listeners) {
+			func(...args);
+		}
+	};
 
-    return {
-        fire,
-        connect,
-    };
+	const connect = (func: (...args: T) => void): void => {
+		listeners.push(func);
+	};
+
+	return {
+		connect,
+		fire,
+	};
 }
 
 const registry = new ecs.World();
 export const signals: {
-    added: Record<Id<unknown>, Signal<Array<unknown>>>;
-    removed: Record<Id<unknown>, Signal<Array<unknown>>>;
-    changed: Record<Id<unknown>, Signal<Array<unknown>>>;
+	added: Record<Id<unknown>, Signal<Array<unknown>>>;
+	changed: Record<Id<unknown>, Signal<Array<unknown>>>;
+	removed: Record<Id<unknown>, Signal<Array<unknown>>>;
 } = {
-    added: {},
-    removed: {},
-    changed: {}
+	added: {},
+	changed: {},
+	removed: {},
 };
 
-/** @metadata macro  */
+/**
+ * A component is something that is added to an entity. Components can simply
+ * tag an entity ("this entity is an Npc"), attach data to an entity ("this
+ * entity is at Position Vector3.new(10, 20, 30)") and create relationships
+ * between entities ("bob Likes alice") that may also contain data ("bob Eats 10
+ * apples").
+ *
+ * @template T - The type of the component.
+ * @param key - Flamework autogenerated key.
+ * @returns The component entity id.
+ * @metadata macro
+ */
 export function component<T>(key?: Modding.Generic<T, "id">): Id<T> {
-    assert(key)
-    let id = components.get(key)
-    if (id === undefined) {
-        id = registry.component()
-        components.set(key, id)
-    }
-    const addedSignal = createSignal();
-    const removedSignal = createSignal();
-    const changedSignal = createSignal();
-    signals.added[id] = addedSignal;
-    signals.removed[id] = removedSignal;
-    signals.changed[id] = changedSignal
+	assert(key);
+	let id = components.get(key) as Id<T> | undefined;
+	if (id === undefined) {
+		id = registry.component();
+		components.set(key, id);
+	}
 
-    registry.set(id, ecs.OnAdd, (entity) => {
-        addedSignal.fire(entity);
-    });
-    registry.set(id, ecs.OnRemove, (entity) => {
-        removedSignal.fire(entity);
-    });
-    registry.set(id, ecs.OnSet, (entity, data) => {
-        changedSignal.fire(entity, data)
-    })
-    return id as never
+	const addedSignal = createSignal();
+	const removedSignal = createSignal();
+	const changedSignal = createSignal();
+	signals.added[id] = addedSignal;
+	signals.removed[id] = removedSignal;
+	signals.changed[id] = changedSignal;
+
+	registry.set(id, ecs.OnAdd, entity => {
+		addedSignal.fire(entity);
+	});
+	registry.set(id, ecs.OnRemove, entity => {
+		removedSignal.fire(entity);
+	});
+	registry.set(id, ecs.OnSet, (entity, data) => {
+		changedSignal.fire(entity, data);
+	});
+
+	return id;
 }
 
 interface Changes<T> {
-    added: (entity: number) => void,
-    removed: (entity: number) => void,
-    changed: (entity: number, current: T, previous: T) => void
+	added: (entity: number) => void;
+	changed: (entity: number, current: T, previous: T) => void;
+	removed: (entity: number) => void;
 }
 
 export function createTracker<T>(key?: Modding.Generic<T, "id">) {
-    assert(key !== undefined)
-    const id = component<T>()
-    
-    let previous = new Array<T>()
+	assert(key !== undefined);
+	const id = component<T>();
 
-    const added = new Array<number>()
-    const removed = new Array<number>();
-    let changedEntities = new Array<number>();
-    let changedData = new Array<T>();
+	let previous = new Array<T>();
 
-    (signals.added[id] as Signal<[number]>)
-        .connect((entity: number) => {
-            added.push(entity)
-        });
+	const entitiesAdded = new Array<number>();
+	const entitiesRemoved = new Array<number>();
+	let changedEntities = new Array<number>();
+	let changedData = new Array<T>();
 
-    (signals.removed[id] as Signal<[number]>)
-        .connect((entity: number) => {
-            removed.push(entity)
-        });
+	(signals.added[id] as Signal<[number]>).connect((entity: number) => {
+		entitiesAdded.push(entity);
+	});
 
-    (signals.changed[id] as Signal<[number, T]>)
-        .connect((entity: number, data: T) => {
-            const len = changedData.size()
-            changedEntities[len] = entity
-            changedData[len] = data
-        });
+	(signals.removed[id] as Signal<[number]>).connect((entity: number) => {
+		entitiesRemoved.push(entity);
+	});
 
-    const changes: Changes<T> = {
-        added: () => {
-            let i = 0
-            return () => {
-                const e = added[i] 
-                i++
-                return e
-            }
-        },
-        changed: () => {
-            let i = 0
-            return () => {
-                const e = changedEntities[i] 
-                if (e === undefined) {
-                    return
-                }
-                const data = changedData[i]
-                const old = previous[i]
-                i++
-                return $tuple(e, data, old)
-            }
-        },
-        removed: () => {
-            let i = 0
-            return () => {
-                const e = removed[i] 
-                i++
-                return e
-            }
-        }
-    }
+	(signals.changed[id] as Signal<[number, T]>).connect((entity: number, data: T) => {
+		const length = changedData.size();
+		changedEntities[length] = entity;
+		changedData[length] = data;
+	});
 
-    return (fn: Callback) => {
-        fn(changes)
-        previous = changedData  
-        changedEntities = new Array<number>()
-        changedData = new Array<T>()
-    }
+	const changes: Changes<T> = {
+		added: () => {
+			let index = 0;
+			return () => {
+				const entity = entitiesAdded[index];
+				index++;
+				return entity;
+			};
+		},
+		changed: () => {
+			let index = 0;
+			return () => {
+				const entity = changedEntities[index];
+				if (entity === undefined) {
+					return;
+				}
+
+				const data = changedData[index];
+				const old = previous[index];
+				index++;
+				return $tuple(entity, data, old);
+			};
+		},
+		removed: () => {
+			let index = 0;
+			return () => {
+				const entity = entitiesRemoved[index];
+				index++;
+				return entity;
+			};
+		},
+	};
+
+	return (func: Callback) => {
+		func(changes);
+		previous = changedData;
+		changedEntities = new Array<number>();
+		changedData = new Array<T>();
+	};
 }
 
 export function added<T>(id: Id<T>): Signal<[number, T]> {
-    return signals.added[id] as never;
+	return signals.added[id] as Signal<[number, T]>;
 }
 
 export function removed<T>(id: Id<T>): Signal<[number]> {
-    return signals.removed[id] as never;
+	return signals.removed[id] as Signal<[number]>;
 }
 
-/** @metadata macro */
+/**
+ * Creates a new entity with the specified components.
+ *
+ * @template T - The type of the components.
+ * @param bundle - The components to add to the entity.
+ * @param keys - Flamework autogenerated keys.
+ * @returns The entity id.
+ * @metadata macro
+ */
 export function spawn<T extends Array<unknown>>(
-    bundle: T,
-    keys?: Modding.Many<{[K in keyof T]: Modding.Generic<T[K], "id">}>
+	bundle: T,
+	keys?: Modding.Many<{ [K in keyof T]: Modding.Generic<T[K], "id"> }>,
 ): number {
-    assert(keys !== undefined)
-    const e = registry.entity()
-    const n = bundle.size()
-    for (const i of $range(0, n - 1)) {
-        const key = keys[i]
-        const data = bundle[i]
-        const id = component(key)
-        registry.set(e, id, data)
-    }
-    
-    return e;
+	assert(keys !== undefined);
+	const entity = registry.entity();
+	const size = bundle.size();
+	for (const index of $range(0, size - 1)) {
+		const key = keys[index];
+		const data = bundle[index];
+		const id = component(key);
+		registry.set(entity, id, data);
+	}
+
+	return entity;
 }
 
-/** @metadata macro */
-export function set<T>(
-    entity: number, 
-    value: T,
-    key?: Modding.Generic<T, "id">
-) {
-    const id = component(key)
-    registry.set(entity as never, id, value);
+/**
+ * Adds or changes the entity's component.
+ *
+ * @template T - The type of the component.
+ * @param entity - The entity to modify.
+ * @param value - The data of the component's type.
+ * @param key - Flamework autogenerated key.
+ * @metadata macro
+ */
+export function set<T>(entity: number, value: T, key?: Modding.Generic<T, "id">): void {
+	const id = component(key);
+	registry.set(entity as Entity, id, value);
 }
 
-/** @metadata macro */
+/**
+ * Adds a component ID to the entity.
+ *
+ * This operation adds a single (component) id to an entity.
+ *
+ * @template T - The type of the component.
+ * @param entity - The entity to add the component to.
+ * @param key - Flamework autogenerated key.
+ * @info This function is idempotent, meaning if the entity already has the id, this operation will have no side effects.
+ * @metadata macro
+ */
 export function add<T>(entity: number, key?: Modding.Generic<T, "id">): void {
-    const id = component(key)
-    registry.add(entity as never, id)
+	const id = component(key);
+	registry.add(entity as Entity, id);
 }
 
-/** @metadata macro */
+/**
+ * Removes the component ID from the entity.
+ *
+ * @template T - The type of the component.
+ * @param entity - The entity to remove the component from.
+ * @param key - Flamework autogenerated key.
+ * @metadata macro
+ */
 export function remove<T>(entity: number, key?: Modding.Generic<T, "id">): void {
-    const id = component(key)
-    registry.remove(entity as never, id)
+	const id = component(key);
+	registry.remove(entity as Entity, id);
 }
 
-/** @metadata macro */
+/**
+ * Returns the data for the component data the corresponding entity, nil if
+ * entity does not have the ID or was a tag.
+ *
+ * @template T - The type of the component.
+ * @param entity - The entity to get the component data for.
+ * @param key - Flamework autogenerated key.
+ * @returns Returns the data for the component data the corresponding entity,
+ *   nil if entity does not have the id or was a tag.
+ * @metadata macro
+ */
 export function get<T>(entity: number, key?: Modding.Generic<T, "id">): T | undefined {
-    const id = component(key)
-    return registry.get(entity as never, id)
+	const id = component(key);
+	return registry.get(entity as Entity, id);
 }
 
-/** @metadata macro */
+/**
+ * Returns whether the entity has the given id.
+ *
+ * @template T - The type of the component.
+ * @param entity - The entity to check.
+ * @param key - Flamework autogenerated key.
+ * @returns Whether the entity has the id.
+ * @metadata macro
+ */
 export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean {
-    const id = component(key)
-    return registry.has(entity as never, id)
+	const id = component(key);
+	return registry.has(entity as Entity, id);
 }
 
-/** @metadata macro */
+/**
+ * A World contains entities which have components. The World is queryable and
+ * can be used to get entities with a specific set of components.
+ *
+ * @template With - The components that the entity must have.
+ * @template Without - The components that the entity must not have.
+ * @param terms - Flamework autogenerated key.
+ * @param filter - Flamework autogenerated key.
+ * @returns The query object.
+ * @metadata macro
+ */
 export function query<With extends Array<unknown>, Without extends Array<unknown> = []>(
-    terms?: Modding.Many<{[
-        Term in keyof With]: Modding.Generic<With[Term], "id">
-    }>,
-    filter?: Modding.Many<{[
-        Term in keyof Without]: Modding.Generic<Without[Term], "id">
-    }>
+	terms?: Modding.Many<{
+		[Term in keyof With]: Modding.Generic<With[Term], "id">;
+	}>,
+	filter?: Modding.Many<{
+		[Term in keyof Without]: Modding.Generic<Without[Term], "id">;
+	}>,
 ): Query<With> {
-    assert(terms !== undefined)
-    const ids = new Array<number>()
-    for (const key of terms) {
-        const id = component(key)
-        ids.push(id)
-    }
-    const q = registry.query(...ids)
-    if (filter !== undefined) {
-        const ids = new Array<number>()
-        for (const key of filter) {
-            const id = component(key)
-            ids.push(id)
-        }
-        return q.without(...ids) as never
-    }
+	assert(terms !== undefined);
+	const ids = new Array<number>();
+	for (const key of terms) {
+		const id = component(key);
+		ids.push(id);
+	}
 
-    return q as never
+	const result = registry.query(...ids);
+	if (filter !== undefined) {
+		const entityIds = new Array<number>();
+		for (const key of filter) {
+			const id = component(key);
+			entityIds.push(id);
+		}
+
+		return result.without(...entityIds) as never;
+	}
+
+	return result as never;
 }
 
-export function despawn(entity: number) {
-    registry.delete(entity as never);
+export function despawn(entity: number): void {
+	registry.delete(entity as never);
 }
 
 type DynamicBundle = Array<Id<unknown>>;
 
-type QueryIter<T extends unknown[]> = IterableFunction<LuaTuple<[number, ...T]>>;
+type QueryIter<T extends Array<unknown>> = IterableFunction<LuaTuple<[number, ...T]>>;
 
-type Query<T extends unknown[]> = QueryIter<T> & {
-    without: (this: Query<T>, ...exclude: DynamicBundle) => Query<T>;
-};
+type Query<T extends Array<unknown>> = {
+	without: (this: Query<T>, ...exclude: DynamicBundle) => Query<T>;
+} & QueryIter<T>;
 
+// eslint-disable-next-line ts/no-unused-vars -- Placeholder for the future.
 let isPreloading = false;
 // RuntimeLib, which is required to import packages
 const tsImpl = (_G as Map<unknown, unknown>).get(script) as {
-    import: (...modules: LuaSourceContainer[]) => unknown;
+	import: (...modules: Array<LuaSourceContainer>) => unknown;
 };
-/** @hidden */
-export function _addPaths(paths: string[][]) {
-    const preloadPaths = new Array<Instance>();
-    for (const arg of paths) {
-        const service = arg.shift();
-        let currentPath: Instance = game.GetService(service as keyof Services);
-        if (service === "StarterPlayer") {
-            if (arg[0] !== "StarterPlayerScripts") throw "StarterPlayer only supports StarterPlayerScripts";
-            if (!RunService.IsClient()) throw "The server cannot load StarterPlayer content";
-            currentPath = Players.LocalPlayer.WaitForChild("PlayerScripts");
-            arg.shift();
-        }
-        for (let i = 0; i < arg.size(); i++) {
-            currentPath = currentPath.WaitForChild(arg[i]);
-        }
-        preloadPaths.push(currentPath);
-    }
 
-    const preload = (moduleScript: ModuleScript) => {
-        isPreloading = true;
-        const start = os.clock();
-        const [success, value] = pcall(() => tsImpl.import(script, moduleScript));
-        const endTime = math.floor((os.clock() - start) * 1000);
-        isPreloading = false;
-        if (!success) {
-            throw `${moduleScript.GetFullName()} failed to preload (${endTime}ms): ${value}`;
-        }
-    };
+/** @ignore */
+// eslint-disable-next-line ts/no-unused-vars -- Used for internal purposes.
+export function _addPaths(paths: Array<Array<string>>): void {
+	const preloadPaths = new Array<Instance>();
+	for (const argument of paths) {
+		const service = argument.shift();
+		let currentPath: Instance = game.GetService(service as keyof Services);
+		if (service === "StarterPlayer") {
+			if (argument[0] !== "StarterPlayerScripts") {
+				throw "StarterPlayer only supports StarterPlayerScripts";
+			}
 
-    for (const path of preloadPaths) {
-        if (path.IsA("ModuleScript")) {
-            preload(path);
-        }
-        for (const instance of path.GetDescendants()) {
-            if (instance.IsA("ModuleScript")) {
-                preload(instance);
-            }
-        }
-    }
+			if (!RunService.IsClient()) {
+				throw "The server cannot load StarterPlayer content";
+			}
+
+			currentPath = Players.LocalPlayer.WaitForChild("PlayerScripts");
+			argument.shift();
+		}
+
+		for (let index = 0; index < argument.size(); index++) {
+			currentPath = currentPath.WaitForChild(argument[index]!);
+		}
+
+		preloadPaths.push(currentPath);
+	}
+
+	const preload = (moduleScript: ModuleScript): void => {
+		isPreloading = true;
+		const startTime = os.clock();
+		const [success, value] = pcall(() => tsImpl.import(script, moduleScript));
+		const endTime = math.floor((os.clock() - startTime) * 1000);
+		isPreloading = false;
+		if (!success) {
+			throw `${moduleScript.GetFullName()} failed to preload (${endTime}ms): ${value}`;
+		}
+	};
+
+	for (const path of preloadPaths) {
+		if (path.IsA("ModuleScript")) {
+			preload(path);
+		}
+
+		for (const instance of path.GetDescendants()) {
+			if (instance.IsA("ModuleScript")) {
+				preload(instance);
+			}
+		}
+	}
 }
 /**
  * Preload the specified paths by requiring all ModuleScript descendants.
  *
+ * @param path - The path to preload.
+ * @param meta - Flamework autogenerated key.
  * @metadata macro intrinsic-arg-shift {@link _addPaths intrinsic-flamework-rewrite}
  */
-export declare function addPaths<T extends string>(path: T, meta?: Modding.Intrinsic<"path", [T]>): void;
-
+export declare function addPaths<T extends string>(
+	path: T,
+	meta?: Modding.Intrinsic<"path", [T]>,
+): void;

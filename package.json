@@ -1,46 +1,42 @@
 {
-    "name": "@rbxts/flamecs",
-    "version": "0.1.0-rc.3",
-    "description": "",
-    "main": "out/init.lua",
-    "scripts": {
-        "build": "rbxtsc",
-        "watch": "rbxtsc -w",
-        "prepublishOnly": "npm run build"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "types": "out/index.d.ts",
-    "files": [
-        "out",
-        "!**/*.tsbuildinfo"
-    ],
-    "publishConfig": {
-        "access": "public"
-    },
-    "experimentalDecorators": true,
-    "plugins": [
-        {
-            "transform": "rbxts-transformer-flamework"
-        }
-    ],
-    "devDependencies": {
-        "@rbxts/compiler-types": "^3.0.0-types.0",
-        "@rbxts/types": "^1.0.805",
-        "@typescript-eslint/eslint-plugin": "^8.5.0",
-        "@typescript-eslint/parser": "^8.5.0",
-        "eslint": "^8.57.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-prettier": "^5.2.1",
-        "eslint-plugin-roblox-ts": "^0.0.36",
-        "prettier": "^3.3.3",
-        "roblox-ts": "^3.0.0",
-        "typescript": "^5.6.2"
-    },
-    "dependencies": {
-        "@flamework/core": "^1.2.3",
-        "@rbxts/jecs": "^0.3.2",
-        "rbxts-transformer-flamework": "^1.2.3"
-    }
+	"name": "@rbxts/flamecs",
+	"version": "0.1.0-rc.3",
+	"description": "",
+	"keywords": [],
+	"license": "ISC",
+	"author": "",
+	"main": "out/init.lua",
+	"types": "out/index.d.ts",
+	"files": [
+		"out",
+		"!**/*.tsbuildinfo"
+	],
+	"scripts": {
+		"build": "rbxtsc",
+		"prepublishOnly": "npm run build",
+		"watch": "rbxtsc -w"
+	},
+	"dependencies": {
+		"@flamework/core": "^1.2.3",
+		"@rbxts/jecs": "^0.3.2",
+		"jiti": "^2.1.0",
+		"rbxts-transformer-flamework": "^1.2.3"
+	},
+	"devDependencies": {
+		"@isentinel/eslint-config": "^0.8.0",
+		"@rbxts/compiler-types": "^3.0.0-types.0",
+		"@rbxts/types": "^1.0.809",
+		"eslint": "^9.11.0",
+		"roblox-ts": "^3.0.0",
+		"typescript": "^5.6.2"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"experimentalDecorators": true,
+	"plugins": [
+		{
+			"transform": "rbxts-transformer-flamework"
+		}
+	]
 }
