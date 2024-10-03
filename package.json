@@ -1,6 +1,6 @@
 {
 	"name": "@rbxts/flamecs",
-	"version": "0.1.0-rc.3",
+	"version": "0.1.0-rc.6",
 	"description": "",
 	"keywords": [],
 	"license": "ISC",
@@ -33,10 +33,5 @@
 	"publishConfig": {
 		"access": "public"
 	},
-	"experimentalDecorators": true,
-	"plugins": [
-		{
-			"transform": "rbxts-transformer-flamework"
-		}
-	]
+	
 }

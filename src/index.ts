@@ -387,6 +387,30 @@ export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean 
 }
 
 /**
+ * Full credits to @fireboltofdeath for all of these types
+ */
+export type Without<T> = { _flamecs_without: T };
+export type With<T> = { _flamework_with: T };
+
+type Skip<T extends unknown[]> = T extends [unknown, ...infer R] ? R : [];
+
+type Bounds = { query: unknown[]; with: unknown[]; without: unknown[]; };
+type BoundsTuple<T> = T extends readonly unknown[] & { length: number } ? T : [];
+type PushBound<B extends Bounds, K extends keyof B, V> = Omit<B, K> &
+	Record<K, V extends readonly unknown[] ? [...BoundsTuple<B[K]>, ...V] : [...BoundsTuple<B[K]>, V]>;
+
+type Calculate<T extends unknown[], B extends Bounds = Bounds> = T extends []
+	? { [k in keyof B]: BoundsTuple<B[k]> }
+	: T[0] extends Without<infer V>
+		? Calculate<Skip<T>, PushBound<B, "without", V>>
+	: T[0] extends With<infer V>
+		? Calculate<Skip<T>, PushBound<B, "with", V>>
+	: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
+type ToIds<T> = T extends [] ? undefined : Modding.Many<{
+    [k in keyof T]: Modding.Generic<T[k], "id">;
+}>;
+
+/**
  * A World contains entities which have components. The World is queryable and
  * can be used to get entities with a specific set of components.
  *
@@ -397,33 +421,39 @@ export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean 
  * @returns The query object.
  * @metadata macro
  */
-export function query<With extends Array<unknown>, Without extends Array<unknown> = []>(
-	terms?: Modding.Many<{
-		[Term in keyof With]: Modding.Generic<With[Term], "id">;
-	}>,
-	filter?: Modding.Many<{
-		[Term in keyof Without]: Modding.Generic<Without[Term], "id">;
-	}>,
-): Query<With> {
-	assert(terms !== undefined);
-	const ids = new Array<number>();
-	for (const key of terms) {
-		const id = component(key);
-		ids.push(id);
-	}
 
-	const result = registry.query(...ids);
-	if (filter !== undefined) {
-		const entityIds = new Array<number>();
-		for (const key of filter) {
-			const id = component(key);
-			entityIds.push(id);
-		}
+/** @metadata macro */
+export function query<T extends unknown[]>(
+    terms?: ToIds<Calculate<T>["query"]>,
+    filterWithout?: ToIds<Calculate<T>["without"]>,
+    filterWith?: ToIds<Calculate<T>["with"]>
+): Query<Reconstruct<Calculate<T>["query"]>> {
+    assert(terms !== undefined)
+    const ids = new Array<number>()
+    for (const key of terms) {
+        const id = component(key)
+        ids.push(id)
+    }
+    let q = registry.query(...ids)
+    if (filterWithout !== undefined) {
+        const filterWithoutIds = new Array<number>()
+        for (const key of filterWithout) {
+            const id = component(key)
+            filterWithoutIds.push(id)
+        }
+        q = q.without(...filterWithoutIds)
+    }
 
-		return result.without(...entityIds) as never;
-	}
+    if (filterWith !== undefined) {
+        const filterWithIds = new Array<number>()
+        for (const key of filterWith) {
+            const id = component(key)
+            filterWithIds.push(id)
+        }
+        q = q.with(...filterWithIds)
+    }
 
-	return result as never;
+    return q as never
 }
 
 export function despawn(entity: number): void {

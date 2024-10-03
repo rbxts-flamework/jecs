@@ -4,6 +4,7 @@ Flamework + ECS = Flamecs 🔥
 - Blazingly Stupid
 - Looking for VC funding
 - Use types as components
+- Zero-cost topologically aware functions
 - Built-in Scheduler (soon)
 - Component Metadata (soon)
 
@@ -21,8 +22,7 @@ start({}, () => {
 	}
 });
 
-// The second generic argument is the terms you would like to exclude in `Without`
-for (const [e, vec] of query<[Vector3], [CFrame]>()) {
+for (const [e, vec] of query<[Vector3, Without<[CFrame]>]>()) {
 	print(e, vec);
 }
 ```
