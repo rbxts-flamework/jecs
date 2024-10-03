@@ -301,7 +301,7 @@ export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean 
  * Full credits to @fireboltofdeath for all of these types
  */
 export type Without<T> = { _flamecs_without: T };
-type With<T> = { _flamework_with: T };
+export type With<T> = { _flamework_with: T };
 
 type Skip<T extends unknown[]> = T extends [unknown, ...infer R] ? R : [];
 
@@ -311,12 +311,13 @@ type PushBound<B extends Bounds, K extends keyof B, V> = Omit<B, K> &
 	Record<K, V extends readonly unknown[] ? [...BoundsTuple<B[K]>, ...V] : [...BoundsTuple<B[K]>, V]>;
 
 type Calculate<T extends unknown[], B extends Bounds = Bounds> = T extends []
-	? { [k in keyof B]: BoundsTuple<B[k]> }
+	? { [k in keyof B]: BoundsTuple<B[k]> extends [] ? undefined : BoundsTuple<B[k]> }
 	: T[0] extends Without<infer V>
 		? Calculate<Skip<T>, PushBound<B, "without", V>>
 	: T[0] extends With<infer V>
 		? Calculate<Skip<T>, PushBound<B, "with", V>>
 	: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
+
 type ToIds<T> = Modding.Many<{
     [k in keyof T]: Modding.Generic<T[k], "id">;
 }>;
