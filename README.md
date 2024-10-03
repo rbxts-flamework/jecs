@@ -1,4 +1,4 @@
-# Flamecs 
+# Flamecs
 Flamework + ECS = Flamecs 🔥
 
 - Blazingly Stupid
@@ -24,5 +24,12 @@ start({}, () => {
 
 for (const [e, vec] of query<[Vector3, Without<[CFrame]>]>()) {
 	print(e, vec);
+}
+
+// You can also use pairs but you need to opt into the runtime query interface
+// Use component<T> to generate runtime IDs for your interfaces
+
+for (const [entity, p0] of query.rt(component<Vector3>()).with(pair(ChildOf, parent))) {
+	print(e, p0);
 }
 ```

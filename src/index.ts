@@ -1,6 +1,9 @@
 import type { Modding } from "@flamework/core";
 import type { Entity } from "@rbxts/jecs";
-import ecs from "@rbxts/jecs";
+import * as ecs from "@rbxts/jecs";
+
+export const { ChildOf, pair } = ecs
+
 import { Players, RunService } from "@rbxts/services";
 
 interface State {
@@ -185,24 +188,23 @@ export function component<T>(key?: Modding.Generic<T, "id">): Id<T> {
 	if (id === undefined) {
 		id = registry.component();
 		components.set(key, id);
+		const addedSignal = createSignal();
+		const removedSignal = createSignal();
+		const changedSignal = createSignal();
+		signals.added[id] = addedSignal;
+		signals.removed[id] = removedSignal;
+		signals.changed[id] = changedSignal;
+
+		registry.set(id, ecs.OnAdd, entity => {
+			addedSignal.fire(entity);
+		});
+		registry.set(id, ecs.OnRemove, entity => {
+			removedSignal.fire(entity);
+		});
+		registry.set(id, ecs.OnSet, (entity, data) => {
+			changedSignal.fire(entity, data);
+		});
 	}
-
-	const addedSignal = createSignal();
-	const removedSignal = createSignal();
-	const changedSignal = createSignal();
-	signals.added[id] = addedSignal;
-	signals.removed[id] = removedSignal;
-	signals.changed[id] = changedSignal;
-
-	registry.set(id, ecs.OnAdd, entity => {
-		addedSignal.fire(entity);
-	});
-	registry.set(id, ecs.OnRemove, entity => {
-		removedSignal.fire(entity);
-	});
-	registry.set(id, ecs.OnSet, (entity, data) => {
-		changedSignal.fire(entity, data);
-	});
 
 	return id;
 }
@@ -434,11 +436,24 @@ type ToIds<T> = T extends []
  * @returns The query object.
  * @metadata macro
  */
-export function query<T extends Array<unknown>>(
+interface Query {
+	<T extends Array<unknown>>(
+		terms?: ToIds<Calculate<T>["query"]>,
+		filterWithout?: ToIds<Calculate<T>["without"]>,
+		filterWith?: ToIds<Calculate<T>["with"]>,
+	): QueryHandle<Reconstruct<Calculate<T>["query"]>>;
+
+	rt: <U extends Array<ecs.Entity>>(...args: U) => ecs.Query<ecs.InferComponents<U>>;
+}
+export const query: Query = {
+	rt: <T extends Array<ecs.Entity>>(...args: T) => registry.query(...args),
+} as Query;
+
+(query as unknown as { __call: Callback }).__call = <T extends Array<unknown>>(
 	terms?: ToIds<Calculate<T>["query"]>,
 	filterWithout?: ToIds<Calculate<T>["without"]>,
 	filterWith?: ToIds<Calculate<T>["with"]>,
-): Query<Reconstruct<Calculate<T>["query"]>> {
+) => {
 	assert(terms !== undefined);
 	const ids = new Array<number>();
 	for (const key of terms) {
@@ -468,18 +483,26 @@ export function query<T extends Array<unknown>>(
 	}
 
 	return result as never;
-}
+};
 
 export function despawn(entity: number): void {
 	registry.delete(entity as never);
+}
+
+for (const [entity] of query<[Vector3]>()) {
+	print(entity);
+}
+
+for (const [entity, vec] of query.rt(component<Vector3>())) {
+	print(entity, vec)
 }
 
 type DynamicBundle = Array<Id<unknown>>;
 
 type QueryIter<T extends Array<unknown>> = IterableFunction<LuaTuple<[number, ...T]>>;
 
-type Query<T extends Array<unknown>> = {
-	without: (this: Query<T>, ...exclude: DynamicBundle) => Query<T>;
+type QueryHandle<T extends Array<unknown>> = {
+	without: (this: QueryHandle<T>, ...exclude: DynamicBundle) => QueryHandle<T>;
 } & QueryIter<T>;
 
 // eslint-disable-next-line ts/no-unused-vars -- Placeholder for the future.
