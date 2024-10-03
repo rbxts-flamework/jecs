@@ -421,8 +421,6 @@ type ToIds<T> = T extends [] ? undefined : Modding.Many<{
  * @returns The query object.
  * @metadata macro
  */
-
-/** @metadata macro */
 export function query<T extends unknown[]>(
     terms?: ToIds<Calculate<T>["query"]>,
     filterWithout?: ToIds<Calculate<T>["without"]>,
