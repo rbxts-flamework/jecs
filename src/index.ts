@@ -311,14 +311,13 @@ type PushBound<B extends Bounds, K extends keyof B, V> = Omit<B, K> &
 	Record<K, V extends readonly unknown[] ? [...BoundsTuple<B[K]>, ...V] : [...BoundsTuple<B[K]>, V]>;
 
 type Calculate<T extends unknown[], B extends Bounds = Bounds> = T extends []
-	? { [k in keyof B]: BoundsTuple<B[k]> extends [] ? undefined : BoundsTuple<B[k]> }
+	? { [k in keyof B]: BoundsTuple<B[k]> }
 	: T[0] extends Without<infer V>
 		? Calculate<Skip<T>, PushBound<B, "without", V>>
 	: T[0] extends With<infer V>
 		? Calculate<Skip<T>, PushBound<B, "with", V>>
 	: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
-
-type ToIds<T> = Modding.Many<{
+type ToIds<T> = T extends [] ? undefined : Modding.Many<{
     [k in keyof T]: Modding.Generic<T[k], "id">;
 }>;
 /** @metadata macro */
