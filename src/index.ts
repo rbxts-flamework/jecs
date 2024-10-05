@@ -7,81 +7,81 @@ export const { ChildOf, pair } = ecs
 import { Players, RunService } from "@rbxts/services";
 
 interface State {
-	cleanup: Callback;
-	state: Record<string, unknown>;
+    cleanup: Callback;
+    state: Record<string, unknown>;
 }
 
 interface StackFrame {
-	node: Record<string, State>;
+    node: Record<string, State>;
 }
 
 const stack: Array<StackFrame> = [];
 
 function addStackFrame(node: Record<string, State>): void {
-	const frame: StackFrame = {
-		node,
-	};
-	stack.push(frame);
+    const frame: StackFrame = {
+        node,
+    };
+    stack.push(frame);
 }
 
 function popStackFrame(): void {
-	stack.pop();
+    stack.pop();
 }
 
 function cleanupAll(): void {
-	const current = stack[stack.size() - 1]!;
+    const current = stack[stack.size() - 1]!;
 
-	for (const [key] of pairs(current.node)) {
-		const state = current.node[key]!;
-		for (const [discriminator] of pairs(state.state)) {
-			state.cleanup(state.state[discriminator]);
-		}
-	}
+    for (const [key] of pairs(current.node)) {
+        const state = current.node[key]!;
+        for (const [discriminator] of pairs(state.state)) {
+            state.cleanup(state.state[discriminator]);
+        }
+    }
 }
 
 export function start(node: Record<string, State>, func: () => void): void {
-	addStackFrame(node);
-	func();
-	cleanupAll();
-	popStackFrame();
+    addStackFrame(node);
+    func();
+    cleanupAll();
+    popStackFrame();
 }
 
 // eslint-disable-next-line ts/explicit-function-return-type -- Returns unknown.
 export function useHookState(
-	key: string,
-	discriminator: unknown,
-	callback: (state: unknown) => void,
+    key: string,
+    discriminator: unknown,
+    callback: (state: unknown) => void,
 ) {
-	const current = stack[stack.size() - 1]!;
-	let storage = current.node[key];
-	if (!storage) {
-		storage = { cleanup: callback, state: {} };
-		current.node[key] = storage;
-	}
+    const current = stack[stack.size() - 1]!;
+    let storage = current.node[key];
+    if (!storage) {
+        storage = { cleanup: callback, state: {} };
+        current.node[key] = storage;
+    }
 
-	discriminator ??= key;
-	const stringifiedKey = tostring(discriminator);
+    discriminator ??= key;
+    const stringifiedKey = tostring(discriminator);
 
-	let state = storage.state[stringifiedKey];
-	if (state === undefined) {
-		state = {};
-		storage.state[stringifiedKey] = state;
-	}
+    let state = storage.state[stringifiedKey];
+    if (state === undefined) {
+        state = {};
+        storage.state[stringifiedKey] = state;
+    }
 
-	return state;
+    return state;
 }
 
 interface Storage {
-	expiry: number;
+    expiry: number;
 }
 
 function cleanup(storage: Storage): boolean {
-	return os.clock() < storage.expiry;
+    return os.clock() < storage.expiry;
 }
 
 interface ThrottleStorage {
-	expiry?: number;
-	time?: number;
+    expiry?: number;
+    time?: number;
 }
 
 const STABLE_DISCRIMINATOR = {};
@@ -100,74 +100,74 @@ const STABLE_DISCRIMINATOR = {};
  * @metadata macro
  */
 export function useThrottle(
-	seconds: number,
-	discriminator?: unknown,
-	key?: Modding.Caller<"uuid">,
+    seconds: number,
+    discriminator?: unknown,
+    key?: Modding.Caller<"uuid">,
 ): boolean {
-	assert(key);
+    assert(key);
 
-	const storage = useHookState(
-		key,
-		discriminator ?? STABLE_DISCRIMINATOR,
-		cleanup as never,
-	) as ThrottleStorage;
+    const storage = useHookState(
+        key,
+        discriminator ?? STABLE_DISCRIMINATOR,
+        cleanup as never,
+    ) as ThrottleStorage;
 
-	if (storage.time === undefined || os.clock() - storage.time >= seconds) {
-		storage.time = os.clock();
-		storage.expiry = os.clock() + seconds;
-		return true;
-	}
+    if (storage.time === undefined || os.clock() - storage.time >= seconds) {
+        storage.time = os.clock();
+        storage.expiry = os.clock() + seconds;
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 export interface Relation<T = Tag> {
-	type: "FLAMECS_RELATION";
-	value: T;
+    type: "FLAMECS_RELATION";
+    value: T;
 }
 
 type Id<T = undefined> = {
-	__T: T;
+    __T: T;
 } & number;
 
 export interface Tag {
-	type: "FLAMECS_TAG";
+    type: "FLAMECS_TAG";
 }
 
 interface Signal<T extends Array<unknown>> {
-	connect: (func: (...args: T) => void) => void;
-	fire: (...args: T) => void;
+    connect: (func: (...args: T) => void) => void;
+    fire: (...args: T) => void;
 }
 
 const components = new Map<string, Id<unknown>>();
 
 function createSignal<T extends Array<unknown>>(): Signal<T> {
-	const listeners = new Array<(...args: T) => void>();
-	const fire = (...args: T): void => {
-		for (const func of listeners) {
-			func(...args);
-		}
-	};
+    const listeners = new Array<(...args: T) => void>();
+    const fire = (...args: T): void => {
+        for (const func of listeners) {
+            func(...args);
+        }
+    };
 
-	const connect = (func: (...args: T) => void): void => {
-		listeners.push(func);
-	};
+    const connect = (func: (...args: T) => void): void => {
+        listeners.push(func);
+    };
 
-	return {
-		connect,
-		fire,
-	};
+    return {
+        connect,
+        fire,
+    };
 }
 
 const registry = new ecs.World();
 export const signals: {
-	added: Record<Id<unknown>, Signal<Array<unknown>>>;
-	changed: Record<Id<unknown>, Signal<Array<unknown>>>;
-	removed: Record<Id<unknown>, Signal<Array<unknown>>>;
+    added: Record<Id<unknown>, Signal<Array<unknown>>>;
+    changed: Record<Id<unknown>, Signal<Array<unknown>>>;
+    removed: Record<Id<unknown>, Signal<Array<unknown>>>;
 } = {
-	added: {},
-	changed: {},
-	removed: {},
+    added: {},
+    changed: {},
+    removed: {},
 };
 
 /**
@@ -183,110 +183,110 @@ export const signals: {
  * @metadata macro
  */
 export function component<T>(key?: Modding.Generic<T, "id">): Id<T> {
-	assert(key);
-	let id = components.get(key) as Id<T> | undefined;
-	if (id === undefined) {
-		id = registry.component();
-		components.set(key, id);
-		const addedSignal = createSignal();
-		const removedSignal = createSignal();
-		const changedSignal = createSignal();
-		signals.added[id] = addedSignal;
-		signals.removed[id] = removedSignal;
-		signals.changed[id] = changedSignal;
+    assert(key);
+    let id = components.get(key) as Id<T> | undefined;
+    if (id === undefined) {
+        id = registry.component();
+        components.set(key, id);
+        const addedSignal = createSignal();
+        const removedSignal = createSignal();
+        const changedSignal = createSignal();
+        signals.added[id] = addedSignal;
+        signals.removed[id] = removedSignal;
+        signals.changed[id] = changedSignal;
 
-		registry.set(id, ecs.OnAdd, entity => {
-			addedSignal.fire(entity);
-		});
-		registry.set(id, ecs.OnRemove, entity => {
-			removedSignal.fire(entity);
-		});
-		registry.set(id, ecs.OnSet, (entity, data) => {
-			changedSignal.fire(entity, data);
-		});
-	}
+        registry.set(id, ecs.OnAdd, entity => {
+            addedSignal.fire(entity);
+        });
+        registry.set(id, ecs.OnRemove, entity => {
+            removedSignal.fire(entity);
+        });
+        registry.set(id, ecs.OnSet, (entity, data) => {
+            changedSignal.fire(entity, data);
+        });
+    }
 
-	return id;
+    return id;
 }
 
 interface Changes<T> {
-	added: (entity: number) => void;
-	changed: (entity: number, current: T, previous: T) => void;
-	removed: (entity: number) => void;
+    added: (entity: number) => void;
+    changed: (entity: number, current: T, previous: T) => void;
+    removed: (entity: number) => void;
 }
 
 export function createTracker<T>(key?: Modding.Generic<T, "id">) {
-	assert(key !== undefined);
-	const id = component<T>();
+    assert(key !== undefined);
+    const id = component<T>();
 
-	let previous = new Array<T>();
+    let previous = new Array<T>();
 
-	const entitiesAdded = new Array<number>();
-	const entitiesRemoved = new Array<number>();
-	let changedEntities = new Array<number>();
-	let changedData = new Array<T>();
+    const entitiesAdded = new Array<number>();
+    const entitiesRemoved = new Array<number>();
+    let changedEntities = new Array<number>();
+    let changedData = new Array<T>();
 
-	(signals.added[id] as Signal<[number]>).connect((entity: number) => {
-		entitiesAdded.push(entity);
-	});
+    (signals.added[id] as Signal<[number]>).connect((entity: number) => {
+        entitiesAdded.push(entity);
+    });
 
-	(signals.removed[id] as Signal<[number]>).connect((entity: number) => {
-		entitiesRemoved.push(entity);
-	});
+    (signals.removed[id] as Signal<[number]>).connect((entity: number) => {
+        entitiesRemoved.push(entity);
+    });
 
-	(signals.changed[id] as Signal<[number, T]>).connect((entity: number, data: T) => {
-		const length = changedData.size();
-		changedEntities[length] = entity;
-		changedData[length] = data;
-	});
+    (signals.changed[id] as Signal<[number, T]>).connect((entity: number, data: T) => {
+        const length = changedData.size();
+        changedEntities[length] = entity;
+        changedData[length] = data;
+    });
 
-	const changes: Changes<T> = {
-		added: () => {
-			let index = 0;
-			return () => {
-				const entity = entitiesAdded[index];
-				index++;
-				return entity;
-			};
-		},
-		changed: () => {
-			let index = 0;
-			return () => {
-				const entity = changedEntities[index];
-				if (entity === undefined) {
-					return;
-				}
+    const changes: Changes<T> = {
+        added: () => {
+            let index = 0;
+            return () => {
+                const entity = entitiesAdded[index];
+                index++;
+                return entity;
+            };
+        },
+        changed: () => {
+            let index = 0;
+            return () => {
+                const entity = changedEntities[index];
+                if (entity === undefined) {
+                    return;
+                }
 
-				const data = changedData[index];
-				const old = previous[index];
-				index++;
-				return $tuple(entity, data, old);
-			};
-		},
-		removed: () => {
-			let index = 0;
-			return () => {
-				const entity = entitiesRemoved[index];
-				index++;
-				return entity;
-			};
-		},
-	};
+                const data = changedData[index];
+                const old = previous[index];
+                index++;
+                return $tuple(entity, data, old);
+            };
+        },
+        removed: () => {
+            let index = 0;
+            return () => {
+                const entity = entitiesRemoved[index];
+                index++;
+                return entity;
+            };
+        },
+    };
 
-	return (func: Callback) => {
-		func(changes);
-		previous = changedData;
-		changedEntities = new Array<number>();
-		changedData = new Array<T>();
-	};
+    return (func: Callback) => {
+        func(changes);
+        previous = changedData;
+        changedEntities = new Array<number>();
+        changedData = new Array<T>();
+    };
 }
 
 export function added<T>(id: Id<T>): Signal<[number, T]> {
-	return signals.added[id] as Signal<[number, T]>;
+    return signals.added[id] as Signal<[number, T]>;
 }
 
 export function removed<T>(id: Id<T>): Signal<[number]> {
-	return signals.removed[id] as Signal<[number]>;
+    return signals.removed[id] as Signal<[number]>;
 }
 
 /**
@@ -299,20 +299,21 @@ export function removed<T>(id: Id<T>): Signal<[number]> {
  * @metadata macro
  */
 export function spawn<T extends Array<unknown>>(
-	bundle: T,
-	keys?: Modding.Many<{ [K in keyof T]: Modding.Generic<T[K], "id"> }>,
+    bundle?: T,
+    keys?: Array<unknown> extends T ? Modding.Many<{ [K in keyof T]: Modding.Generic<T[K], "id"> }> : undefined,
 ): number {
-	assert(keys !== undefined);
-	const entity = registry.entity();
-	const size = bundle.size();
-	for (const index of $range(0, size - 1)) {
-		const key = keys[index];
-		const data = bundle[index];
-		const id = component(key);
-		registry.set(entity, id, data);
-	}
+    const entity = registry.entity();
+    if (keys && bundle) {
+        const size = bundle.size();
+        for (const index of $range(0, size - 1)) {
+            const key = keys[index];
+            const data = bundle[index];
+            const id = component(key);
+            registry.set(entity, id, data);
+        }
+    }
 
-	return entity;
+    return entity;
 }
 
 /**
@@ -325,8 +326,8 @@ export function spawn<T extends Array<unknown>>(
  * @metadata macro
  */
 export function set<T>(entity: number, value: T, key?: Modding.Generic<T, "id">): void {
-	const id = component(key);
-	registry.set(entity as Entity, id, value);
+    const id = component(key);
+    registry.set(entity as Entity, id, value);
 }
 
 /**
@@ -341,8 +342,8 @@ export function set<T>(entity: number, value: T, key?: Modding.Generic<T, "id">)
  * @metadata macro
  */
 export function add<T>(entity: number, key?: Modding.Generic<T, "id">): void {
-	const id = component(key);
-	registry.add(entity as Entity, id);
+    const id = component(key);
+    registry.add(entity as Entity, id);
 }
 
 /**
@@ -354,8 +355,8 @@ export function add<T>(entity: number, key?: Modding.Generic<T, "id">): void {
  * @metadata macro
  */
 export function remove<T>(entity: number, key?: Modding.Generic<T, "id">): void {
-	const id = component(key);
-	registry.remove(entity as Entity, id);
+    const id = component(key);
+    registry.remove(entity as Entity, id);
 }
 
 /**
@@ -370,8 +371,8 @@ export function remove<T>(entity: number, key?: Modding.Generic<T, "id">): void 
  * @metadata macro
  */
 export function get<T>(entity: number, key?: Modding.Generic<T, "id">): T | undefined {
-	const id = component(key);
-	return registry.get(entity as Entity, id);
+    const id = component(key);
+    return registry.get(entity as Entity, id);
 }
 
 /**
@@ -384,44 +385,44 @@ export function get<T>(entity: number, key?: Modding.Generic<T, "id">): T | unde
  * @metadata macro
  */
 export function has<T>(entity: number, key?: Modding.Generic<T, "id">): boolean {
-	const id = component(key);
-	return registry.has(entity as Entity, id);
+    const id = component(key);
+    return registry.has(entity as Entity, id);
 }
 
 // Full credits to @fireboltofdeath for all of these types. */
 export interface Without<T> {
-	_flamecs_without: T;
+    _flamecs_without: T;
 }
 export interface With<T> {
-	_flamework_with: T;
+    _flamework_with: T;
 }
 
 type Skip<T extends Array<unknown>> = T extends [unknown, ...infer R] ? R : [];
 
 interface Bounds {
-	query: Array<unknown>;
-	with: Array<unknown>;
-	without: Array<unknown>;
+    query: Array<unknown>;
+    with: Array<unknown>;
+    without: Array<unknown>;
 }
 type BoundsTuple<T> = T extends { length: number } & ReadonlyArray<unknown> ? T : [];
 type PushBound<B extends Bounds, K extends keyof B, V> = Omit<B, K> &
-	Record<
-		K,
-		V extends ReadonlyArray<unknown> ? [...BoundsTuple<B[K]>, ...V] : [...BoundsTuple<B[K]>, V]
-	>;
+    Record<
+        K,
+        V extends ReadonlyArray<unknown> ? [...BoundsTuple<B[K]>, ...V] : [...BoundsTuple<B[K]>, V]
+    >;
 
 type Calculate<T extends Array<unknown>, B extends Bounds = Bounds> = T extends []
-	? { [k in keyof B]: BoundsTuple<B[k]> }
-	: T[0] extends Without<infer V>
-		? Calculate<Skip<T>, PushBound<B, "without", V>>
-		: T[0] extends With<infer V>
-			? Calculate<Skip<T>, PushBound<B, "with", V>>
-			: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
+    ? { [k in keyof B]: BoundsTuple<B[k]> }
+    : T[0] extends Without<infer V>
+    ? Calculate<Skip<T>, PushBound<B, "without", V>>
+    : T[0] extends With<infer V>
+    ? Calculate<Skip<T>, PushBound<B, "with", V>>
+    : Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
 type ToIds<T> = T extends []
-	? undefined
-	: Modding.Many<{
-			[k in keyof T]: Modding.Generic<T[k], "id">;
-		}>;
+    ? undefined
+    : Modding.Many<{
+        [k in keyof T]: Modding.Generic<T[k], "id">;
+    }>;
 
 /**
  * A World contains entities which have components. The World is queryable and
@@ -437,64 +438,64 @@ type ToIds<T> = T extends []
  * @metadata macro
  */
 interface Query {
-	<T extends Array<unknown>>(
-		terms?: ToIds<Calculate<T>["query"]>,
-		filterWithout?: ToIds<Calculate<T>["without"]>,
-		filterWith?: ToIds<Calculate<T>["with"]>,
-	): QueryHandle<Reconstruct<Calculate<T>["query"]>>;
+    <T extends Array<unknown>>(
+        terms?: ToIds<Calculate<T>["query"]>,
+        filterWithout?: ToIds<Calculate<T>["without"]>,
+        filterWith?: ToIds<Calculate<T>["with"]>,
+    ): QueryHandle<Reconstruct<Calculate<T>["query"]>>;
 
-	rt: <U extends Array<ecs.Entity>>(...args: U) => ecs.Query<ecs.InferComponents<U>>;
+    rt: <U extends Array<ecs.Entity>>(...args: U) => ecs.Query<ecs.InferComponents<U>>;
 }
 export const query: Query = {
-	rt: <T extends Array<ecs.Entity>>(...args: T) => registry.query(...args),
+    rt: <T extends Array<ecs.Entity>>(...args: T) => registry.query(...args),
 } as Query;
 
 (query as unknown as { __call: Callback }).__call = <T extends Array<unknown>>(
-	terms?: ToIds<Calculate<T>["query"]>,
-	filterWithout?: ToIds<Calculate<T>["without"]>,
-	filterWith?: ToIds<Calculate<T>["with"]>,
+    terms?: ToIds<Calculate<T>["query"]>,
+    filterWithout?: ToIds<Calculate<T>["without"]>,
+    filterWith?: ToIds<Calculate<T>["with"]>,
 ) => {
-	assert(terms !== undefined);
-	const ids = new Array<number>();
-	for (const key of terms) {
-		const id = component(key);
-		ids.push(id);
-	}
+    assert(terms !== undefined);
+    const ids = new Array<number>();
+    for (const key of terms) {
+        const id = component(key);
+        ids.push(id);
+    }
 
-	let result = registry.query(...ids);
-	if (filterWithout !== undefined) {
-		const filterWithoutIds = new Array<number>();
-		for (const key of filterWithout) {
-			const id = component(key);
-			filterWithoutIds.push(id);
-		}
+    let result = registry.query(...ids);
+    if (filterWithout !== undefined) {
+        const filterWithoutIds = new Array<number>();
+        for (const key of filterWithout) {
+            const id = component(key);
+            filterWithoutIds.push(id);
+        }
 
-		result = result.without(...filterWithoutIds);
-	}
+        result = result.without(...filterWithoutIds);
+    }
 
-	if (filterWith !== undefined) {
-		const filterWithIds = new Array<number>();
-		for (const key of filterWith) {
-			const id = component(key);
-			filterWithIds.push(id);
-		}
+    if (filterWith !== undefined) {
+        const filterWithIds = new Array<number>();
+        for (const key of filterWith) {
+            const id = component(key);
+            filterWithIds.push(id);
+        }
 
-		result = result.with(...filterWithIds);
-	}
+        result = result.with(...filterWithIds);
+    }
 
-	return result as never;
+    return result as never;
 };
 
 export function despawn(entity: number): void {
-	registry.delete(entity as never);
+    registry.delete(entity as never);
 }
 
 for (const [entity] of query<[Vector3]>()) {
-	print(entity);
+    print(entity);
 }
 
 for (const [entity, vec] of query.rt(component<Vector3>())) {
-	print(entity, vec)
+    print(entity, vec)
 }
 
 type DynamicBundle = Array<Id<unknown>>;
@@ -502,65 +503,65 @@ type DynamicBundle = Array<Id<unknown>>;
 type QueryIter<T extends Array<unknown>> = IterableFunction<LuaTuple<[number, ...T]>>;
 
 type QueryHandle<T extends Array<unknown>> = {
-	without: (this: QueryHandle<T>, ...exclude: DynamicBundle) => QueryHandle<T>;
+    without: (this: QueryHandle<T>, ...exclude: DynamicBundle) => QueryHandle<T>;
 } & QueryIter<T>;
 
 // eslint-disable-next-line ts/no-unused-vars -- Placeholder for the future.
 let isPreloading = false;
 // RuntimeLib, which is required to import packages
 const tsImpl = (_G as Map<unknown, unknown>).get(script) as {
-	import: (...modules: Array<LuaSourceContainer>) => unknown;
+    import: (...modules: Array<LuaSourceContainer>) => unknown;
 };
 
 /** @ignore */
 // eslint-disable-next-line ts/no-unused-vars -- Used for internal purposes.
 export function _addPaths(paths: Array<Array<string>>): void {
-	const preloadPaths = new Array<Instance>();
-	for (const argument of paths) {
-		const service = argument.shift();
-		let currentPath: Instance = game.GetService(service as keyof Services);
-		if (service === "StarterPlayer") {
-			if (argument[0] !== "StarterPlayerScripts") {
-				throw "StarterPlayer only supports StarterPlayerScripts";
-			}
+    const preloadPaths = new Array<Instance>();
+    for (const argument of paths) {
+        const service = argument.shift();
+        let currentPath: Instance = game.GetService(service as keyof Services);
+        if (service === "StarterPlayer") {
+            if (argument[0] !== "StarterPlayerScripts") {
+                throw "StarterPlayer only supports StarterPlayerScripts";
+            }
 
-			if (!RunService.IsClient()) {
-				throw "The server cannot load StarterPlayer content";
-			}
+            if (!RunService.IsClient()) {
+                throw "The server cannot load StarterPlayer content";
+            }
 
-			currentPath = Players.LocalPlayer.WaitForChild("PlayerScripts");
-			argument.shift();
-		}
+            currentPath = Players.LocalPlayer.WaitForChild("PlayerScripts");
+            argument.shift();
+        }
 
-		for (let index = 0; index < argument.size(); index++) {
-			currentPath = currentPath.WaitForChild(argument[index]!);
-		}
+        for (let index = 0; index < argument.size(); index++) {
+            currentPath = currentPath.WaitForChild(argument[index]!);
+        }
 
-		preloadPaths.push(currentPath);
-	}
+        preloadPaths.push(currentPath);
+    }
 
-	const preload = (moduleScript: ModuleScript): void => {
-		isPreloading = true;
-		const startTime = os.clock();
-		const [success, value] = pcall(() => tsImpl.import(script, moduleScript));
-		const endTime = math.floor((os.clock() - startTime) * 1000);
-		isPreloading = false;
-		if (!success) {
-			throw `${moduleScript.GetFullName()} failed to preload (${endTime}ms): ${value}`;
-		}
-	};
+    const preload = (moduleScript: ModuleScript): void => {
+        isPreloading = true;
+        const startTime = os.clock();
+        const [success, value] = pcall(() => tsImpl.import(script, moduleScript));
+        const endTime = math.floor((os.clock() - startTime) * 1000);
+        isPreloading = false;
+        if (!success) {
+            throw `${moduleScript.GetFullName()} failed to preload (${endTime}ms): ${value}`;
+        }
+    };
 
-	for (const path of preloadPaths) {
-		if (path.IsA("ModuleScript")) {
-			preload(path);
-		}
+    for (const path of preloadPaths) {
+        if (path.IsA("ModuleScript")) {
+            preload(path);
+        }
 
-		for (const instance of path.GetDescendants()) {
-			if (instance.IsA("ModuleScript")) {
-				preload(instance);
-			}
-		}
-	}
+        for (const instance of path.GetDescendants()) {
+            if (instance.IsA("ModuleScript")) {
+                preload(instance);
+            }
+        }
+    }
 }
 /**
  * Preload the specified paths by requiring all ModuleScript descendants.
@@ -570,6 +571,6 @@ export function _addPaths(paths: Array<Array<string>>): void {
  * @metadata macro intrinsic-arg-shift {@link _addPaths intrinsic-flamework-rewrite}
  */
 export declare function addPaths<T extends string>(
-	path: T,
-	meta?: Modding.Intrinsic<"path", [T]>,
+    path: T,
+    meta?: Modding.Intrinsic<"path", [T]>,
 ): void;
