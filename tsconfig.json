@@ -32,7 +32,6 @@
 		]
 	},
 	"exclude": [
-		"./eslint.config.ts",
-		"./out"
+		"./eslint.config.ts"
 	]
 }
