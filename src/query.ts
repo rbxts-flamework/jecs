@@ -104,13 +104,6 @@ export function queryRuntimeVersionOnlyIfYouRuntimeValueIds<T extends Array<numb
 }
 
 
-
-export function despawn(entity: number): void {
-    registry.delete(entity as never);
-}
-
-
-
 type DynamicBundle = Array<Id<unknown>>;
 
 type QueryIter<T extends Array<unknown>> = IterableFunction<LuaTuple<[number, ...T]>>;
