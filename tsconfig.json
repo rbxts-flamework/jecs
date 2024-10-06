@@ -1,28 +1,38 @@
 {
-	"compilerOptions": {
-		"incremental": true,
-		"tsBuildInfoFile": "out/tsconfig.tsbuildinfo",
-		"target": "ESNext",
-		"jsx": "react",
-		"jsxFactory": "Roact.createElement",
-		"jsxFragmentFactory": "Roact.createFragment",
-		"moduleDetection": "force",
-		"noLib": true,
-		"experimentalDecorators": true,
-		"rootDir": "src",
-		"module": "commonjs",
-		"moduleResolution": "Node",
-		"resolveJsonModule": true,
-		"typeRoots": ["node_modules/@rbxts"],
-		"strict": true,
-		"noFallthroughCasesInSwitch": true,
-		"noImplicitReturns": true,
-		"noUncheckedIndexedAccess": true,
-		"declaration": true,
-		"downlevelIteration": true,
-		"outDir": "out",
-		"allowSyntheticDefaultImports": true,
-		"forceConsistentCasingInFileNames": true
-	},
-	"exclude": ["./eslint.config.ts", "./out"]
+    "compilerOptions": {
+        "incremental": true,
+        "tsBuildInfoFile": "out/tsconfig.tsbuildinfo",
+        "target": "ESNext",
+        "jsx": "react",
+        "jsxFactory": "Roact.createElement",
+        "jsxFragmentFactory": "Roact.createFragment",
+        "moduleDetection": "force",
+        "noLib": true,
+        "experimentalDecorators": true,
+        "rootDir": "src",
+        "module": "commonjs",
+        "moduleResolution": "Node",
+        "resolveJsonModule": true,
+        "typeRoots": [
+            "node_modules/@rbxts"
+        ],
+        "strict": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUncheckedIndexedAccess": true,
+        "declaration": true,
+        "downlevelIteration": true,
+        "outDir": "out",
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "plugins": [
+            {
+                "transform": "rbxts-transformer-flamework"
+            }
+        ]
+    },
+    "exclude": [
+        "./eslint.config.ts",
+        "./out"
+    ]
 }
