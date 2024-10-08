@@ -3,25 +3,23 @@ import { useHookState } from "../topo";
 
 type Disconnector = () => void;
 
-type Connection =
-	| {
-			Disconnect?: Disconnector;
-			disconnect?: Disconnector;
-	  }
-	| Disconnector;
+type Connection = {
+	Disconnect?(this: Connection): void;
+	disconnect?(this: Connection): void;
+};
 
 type Callback<T extends unknown[]> = (...args: T) => void;
 
 type Signal<T extends unknown[]> =
 	| {
-			connect?: (callback: Callback<T>) => Connection;
-			Connect?: (callback: Callback<T>) => Connection;
-			on?: (callback: Callback<T>) => Connection;
+			connect?(this: Signal<T>, callback: Callback<T>): Connection;
+			Connect?(this: Signal<T>, callback: Callback<T>): Connection;
+			on?(this: Signal<T>, callback: Callback<T>): Connection;
 	  }
 	| ((callback: Callback<T>) => Connection);
 
 interface EventStorage<T extends unknown[]> {
-	connection: Connection | undefined;
+	connection: Connection | Disconnector | undefined;
 	events: T[];
 }
 
@@ -30,7 +28,13 @@ function cleanup<T extends unknown[]>(storage: EventStorage<T>): boolean {
 		if (typeIs(storage.connection, "function")) {
 			storage.connection();
 		} else {
-			(storage.connection.Disconnect || storage.connection.disconnect)!();
+			if (storage.connection.disconnect !== undefined) {
+				storage.connection.disconnect();
+			} else if (storage.connection.Disconnect !== undefined) {
+				storage.connection.Disconnect();
+			} else {
+				warn("No disconnect method found on the connection object.");
+			}
 		}
 	}
 	return true;
@@ -50,7 +54,7 @@ export function useEvent<T extends unknown[]>(
 	discriminator?: unknown,
 	key?: Modding.Caller<"uuid">,
 ): IterableFunction<T> {
-	assert(key, "Key is required for useEvent");
+	assert(key);
 
 	const storage = useHookState<EventStorage<T>>(key, discriminator, cleanup);
 
@@ -60,15 +64,22 @@ export function useEvent<T extends unknown[]>(
 			storage.events.push(args);
 		};
 
-		storage.connection = typeIs(event, "function")
-			? event(eventCallback)
-			: (event.Connect || event.connect || event.on)!(eventCallback);
+		if (typeIs(event, "function")) {
+			storage.connection = event(eventCallback);
+		} else {
+			if (event.connect !== undefined) {
+				storage.connection = event.connect(eventCallback);
+			} else if (event.Connect !== undefined) {
+				storage.connection = event.Connect(eventCallback);
+			} else if (event.on !== undefined) {
+				storage.connection = event.on(eventCallback);
+			} else {
+				error("No connect method found on the event object.");
+			}
+		}
 	}
 
 	return (() => {
-		if (storage.events.size() > 0) {
-			return storage.events.shift()!;
-		}
-		return undefined;
+		return storage.events.shift();
 	}) as IterableFunction<T>;
 }

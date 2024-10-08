@@ -2,11 +2,11 @@ type Cleanup<T> = (state: T) => boolean;
 
 interface State<T> {
 	cleanup: Cleanup<T>;
-	state: Map<string, T>;
+	state: Record<string, T>;
 }
 
 interface StackFrame {
-	node: Map<string, State<unknown>>;
+	node: Record<string, State<unknown>>;
 	accessedKeys: Set<string>;
 }
 
@@ -15,11 +15,11 @@ const stack: StackFrame[] = [];
 function cleanupAll(): void {
 	const current = stack[stack.size() - 1]!;
 
-	for (const [key, state] of current.node) {
-		for (const [discriminator, value] of state.state) {
+	for (const [key, state] of pairs(current.node)) {
+		for (const [discriminator, value] of pairs(state.state)) {
 			const compositeKey = `${key}:${discriminator}`;
 			if (!current.accessedKeys.has(compositeKey) && state.cleanup(value)) {
-				state.state.delete(discriminator);
+				delete state.state[discriminator];
 			}
 		}
 	}
@@ -33,7 +33,7 @@ function cleanupAll(): void {
  * @param func - The function to execute within the new stack frame.
  * @returns - The function to execute within the new stack frame.
  */
-export function start(node: Map<string, State<unknown>>, func: () => void): void {
+export function start(node: Record<string, State<unknown>>, func: () => void): void {
 	stack.push({ node, accessedKeys: new Set() });
 	func();
 	cleanupAll();
@@ -50,22 +50,22 @@ export function start(node: Map<string, State<unknown>>, func: () => void): void
  */
 export function useHookState<T>(key: string, discriminator: unknown = key, cleanup: Cleanup<T>): T {
 	const current = stack[stack.size() - 1]!;
-	let storage = current.node.get(key) as State<T> | undefined;
+	let storage = current.node[key] as State<T> | undefined;
 
 	if (!storage) {
-		storage = { cleanup, state: new Map() };
-		current.node.set(key, storage as State<unknown>);
+		storage = { cleanup, state: {} };
+		current.node[key] = storage as State<unknown>;
 	}
 
 	const stringifiedKey = tostring(discriminator);
 	const compositeKey = `${key}:${stringifiedKey}`;
 	current.accessedKeys.add(compositeKey);
 
-	let state = storage.state.get(stringifiedKey);
+	let state = storage.state[stringifiedKey];
 
 	if (state === undefined) {
 		state = {} as T;
-		storage.state.set(stringifiedKey, state);
+		storage.state[stringifiedKey] = state;
 	}
 
 	return state;
