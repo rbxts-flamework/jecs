@@ -65,5 +65,10 @@ export function useEvent<T extends unknown[]>(
 			: (event.Connect || event.connect || event.on)!(eventCallback);
 	}
 
-	return (() => storage.events) as IterableFunction<T>;
+	return (() => {
+		if (storage.events.size() > 0) {
+			return storage.events.shift()!;
+		}
+		return undefined;
+	}) as IterableFunction<T>;
 }
