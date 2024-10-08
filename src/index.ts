@@ -22,4 +22,5 @@ export {
 	target,
 	despawn,
 	parent,
+	pair,
 } from "./registry";
