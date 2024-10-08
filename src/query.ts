@@ -1,4 +1,4 @@
-import { registry, SolveKey, Id, FilterPairs, getId, Entity } from "./registry";
+import { registry, SolveKey, Id, FilterPairs, getId, Entity, component } from "./registry";
 import * as ecs from "./jecs";
 import { Modding } from "@flamework/core";
 
@@ -52,7 +52,7 @@ type QueryHandle<T extends Array<unknown>> = {
 	 * @returns A new QueryHandle with the pair filter added.
 	 * @metadata macro
 	 */
-	pair<P>(object: Entity, predicate?: SolveKey<P>): QueryHandle<[...T, P]>;
+	pair<P>(object: Entity, predicate?: Modding.Generic<P, "id">): QueryHandle<[...T, P]>;
 } & IterableFunction<LuaTuple<[Entity, ...T]>>;
 
 /**
@@ -104,11 +104,13 @@ export function query<T extends Array<unknown>>(
 	queryHandle.pair = function <P>(
 		this: QueryHandle<ExtractQueryTypes<T>>,
 		object: Entity,
-		predicate?: SolveKey<P>,
+		predicate?: Modding.Generic<P, "id">,
 	) {
 		assert(predicate);
-		const id = getId(predicate);
-		return ecsQuery.expand(object, id) as unknown as QueryHandle<[...ExtractQueryTypes<T>, P]>;
+		const id = component(predicate);
+		return ecsQuery.expand(ecs.pair(id, object)) as unknown as QueryHandle<
+			[...ExtractQueryTypes<T>, P]
+		>;
 	};
 
 	return queryHandle;
