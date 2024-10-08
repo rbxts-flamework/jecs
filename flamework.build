@@ -1,7 +1,10 @@
 {
 	"version": 1,
 	"flameworkVersion": "1.2.3",
-	"identifiers": {},
+	"identifiers": {
+		"@rbxts/flamecs:out/registry@ChildOf": "@rbxts/flamecs:registry@ChildOf",
+		"@rbxts/flamecs:out/registry@Wildcard": "@rbxts/flamecs:registry@Wildcard"
+	},
 	"metadata": {},
 	"identifierPrefix": "@rbxts/flamecs"
 }
