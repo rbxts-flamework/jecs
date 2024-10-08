@@ -37,6 +37,11 @@ const charlie = spawn();
 registry.add(alice, pair<Likes>(bob));
 registry.add(alice, pair<Likes>(charlie));
 
+// The type of a pair is determined by its first component in the relationship.
+// In this case, 'Eats' is defined as an empty interface {}.
+// An empty interface is a structural type that matches any object.
+// This allows us to set Pair<Eats, Apple> to 3, though it's not recommended
+// as it effectively becomes an 'any' type, losing type safety.
 set<Pair<Eats, Apple>>(bob, 3);
 
 for (const [e] of query().pair<Likes>(bob)) {
