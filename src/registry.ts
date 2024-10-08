@@ -262,6 +262,21 @@ export function target<T>(entity: Entity, key?: Modding.Generic<T, "id">): Entit
 }
 
 /**
+ * Creates a pair relationship between a component and an entity.
+ *
+ * @template P - The type of the predicate component.
+ * @template O - The type of the object component.
+ * @param object - The object entity.
+ * @param predicate - The predicate component key.
+ * @returns The pair ID.
+ * @metadata macro
+ */
+export function pair<P>(object: Entity, predicate?: Modding.Generic<P, "id">): Pair<P, unknown> {
+	const predicateId = component(predicate);
+	return ecs.pair(predicateId, object);
+}
+
+/**
  * Deletes the specified entity and all associated components.
  *
  * @param entity - The entity to delete.

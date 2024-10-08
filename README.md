@@ -34,11 +34,8 @@ const alice = spawn();
 const bob = spawn();
 const charlie = spawn();
 
-const Likes = component<Likes>();
-const Eats = component<Eats>();
-
-registry.set(alice, registry.pair(Likes, bob));
-registry.set(alice, registry.pair(Likes, charlie));
+registry.add(alice, pair<Likes>(bob));
+registry.add(alice, pair<Likes>(charlie));
 
 set<Pair<Eats, Apple>>(bob, 3);
 
