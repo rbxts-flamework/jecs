@@ -1,15 +1,25 @@
-export { query, queryRuntimeVersionOnlyIfYouRuntimeValueIds } from "./query";
+export * from "./query";
+export * from "./topo";
+
+export * from "./hooks/use-event";
+export * from "./hooks/use-throttle";
+
+export type { Wildcard, ChildOf, Entity, Id, Tag, Pair } from "./registry";
 export {
-	add,
-	added,
-	despawn,
-	get,
-	has,
-	insert,
 	registry,
+	added,
 	removed,
+	changed,
+	component,
+	reserve,
 	set,
-	signals,
+	insert,
+	add,
+	remove,
+	has,
+	get,
 	spawn,
+	target,
+	despawn,
+	parent,
 } from "./registry";
-export { useHookState, useThrottle } from "./topo";
