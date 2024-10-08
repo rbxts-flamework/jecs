@@ -1403,36 +1403,6 @@ local function query_archetypes(query)
 	return query.compatible_archetypes
 end
 
-local function query_expand(query, ...)
-	local compatible_archetypes = query.compatible_archetypes
-	local new_ids = { ... }
-	local ids = query.ids
-	
-	for i = #compatible_archetypes, 1, -1 do
-		local archetype = compatible_archetypes[i]
-		local records = archetype.records
-		local shouldRemove = false
-
-		for _, id in new_ids do
-			if not records[id] then
-				shouldRemove = true
-				break
-			end
-		end
-
-		if shouldRemove then
-			local last = #compatible_archetypes
-			if last ~= i then
-				compatible_archetypes[i] = compatible_archetypes[last]
-			end
-			compatible_archetypes[last] = nil
-		end
-	end
-
-	table.move(new_ids, 1, #new_ids, #ids + 1, ids)
-	return query
-end
-
 local Query = {}
 Query.__index = Query
 Query.__iter = query_iter
@@ -1440,7 +1410,6 @@ Query.iter = query_iter_init
 Query.without = query_without
 Query.with = query_with
 Query.archetypes = query_archetypes
-Query.expand = query_expand
 
 local function world_query(world: World, ...)
 	local compatible_archetypes = {}
@@ -1707,11 +1676,12 @@ type Query<T...> = typeof(setmetatable({}, {
 	__iter = (nil :: any) :: Iter<T...>,
 })) & {
 	iter: Iter<T...>,
+	next: Item<T...>,
+	drain: (self: Query<T...>) -> Query<T...>,
 	with: (self: Query<T...>, ...i53) -> Query<T...>,
 	without: (self: Query<T...>, ...i53) -> Query<T...>,
 	replace: (self: Query<T...>, <U...>(T...) -> U...) -> (),
 	archetypes: () -> { Archetype },
-	expand: (self: Query<T...>, ...i53) -> Query<T...>,
 }
 
 export type World = {

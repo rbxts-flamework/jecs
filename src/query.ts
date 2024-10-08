@@ -42,6 +42,10 @@ type ToIds<T> = T extends []
 type ExtractQueryTypes<T extends Array<unknown>> = Reconstruct<FilterPairs<Calculate<T>["query"]>>;
 
 type QueryHandle<T extends Array<unknown>> = {
+	terms?: Id[];
+	filterWith?: Id[];
+	filterWithout?: Id[];
+	__iter(): IterableFunction<LuaTuple<[Entity, ...T]>>;
 	/**
 	 * Adds a pair with a runtime entity id to the query.
 	 * The value of the relationship is appended to the end of the iterator tuple.
@@ -55,6 +59,36 @@ type QueryHandle<T extends Array<unknown>> = {
 	pair<P>(object: Entity, predicate?: Modding.Generic<P, "id">): QueryHandle<[...T, P]>;
 } & IterableFunction<LuaTuple<[Entity, ...T]>>;
 
+function _queryPair<T extends Array<unknown>, P>(
+	this: QueryHandle<T>,
+	object: Entity,
+	predicate?: Modding.Generic<P, "id">,
+): QueryHandle<[...T, P]> {
+	assert(predicate);
+	const id = ecs.pair(component(predicate), object);
+	this.terms = this.terms ? [...this.terms, id] : [id];
+	return this as unknown as QueryHandle<[...T, P]>;
+}
+
+function _queryIter<T extends Array<unknown>>(
+	this: QueryHandle<T>,
+): IterableFunction<LuaTuple<[Entity, ...T]>> {
+	if (this.terms) {
+		let ecsQuery = registry.query(...this.terms);
+
+		if (this.filterWithout) {
+			ecsQuery = ecsQuery.without(...this.filterWithout);
+		}
+
+		if (this.filterWith) {
+			ecsQuery = ecsQuery.with(...this.filterWith);
+		}
+
+		return ecsQuery.iter() as IterableFunction<LuaTuple<[Entity, ...T]>>;
+	}
+	return (() => {}) as IterableFunction<LuaTuple<[Entity, ...T]>>;
+}
+
 /**
  * A world contains entities associated with some components.
  * This function creates a query handle for retrieving entities that match the specified components and filters.
@@ -66,53 +100,23 @@ type QueryHandle<T extends Array<unknown>> = {
  * @returns A QueryHandle for chaining additional filters or executing the query.
  * @metadata macro
  */
-export function query<T extends Array<unknown>>(
+export function query<T extends Array<unknown> = []>(
 	terms?: ToIds<Calculate<T>["query"]>,
 	filterWithout?: ToIds<Calculate<T>["without"]>,
 	filterWith?: ToIds<Calculate<T>["with"]>,
 ): QueryHandle<ExtractQueryTypes<T>> {
-	assert(terms);
-	const ids = new Array<Id>();
-	for (const key of terms) {
-		const id = getId(key);
-		ids.push(id);
-	}
+	const processedTerms = terms?.map(getId);
+	const processedFilterWithout = filterWithout?.map(getId);
+	const processedFilterWith = filterWith?.map(getId);
 
-	let ecsQuery = registry.query(...ids);
-	if (filterWithout !== undefined) {
-		const filterWithoutIds = new Array<Id>();
-		for (const key of filterWithout) {
-			const id = getId(key);
-			filterWithoutIds.push(id);
-		}
-
-		ecsQuery = ecsQuery.without(...filterWithoutIds);
-	}
-
-	if (filterWith !== undefined) {
-		const filterWithIds = new Array<Id>();
-		for (const key of filterWith) {
-			const id = getId(key);
-			filterWithIds.push(id);
-		}
-
-		ecsQuery = ecsQuery.with(...filterWithIds);
-	}
-
-	const queryHandle = ecsQuery as unknown as QueryHandle<ExtractQueryTypes<T>>;
-
-	queryHandle.pair = function <P>(
-		this: QueryHandle<ExtractQueryTypes<T>>,
-		object: Entity,
-		predicate?: Modding.Generic<P, "id">,
-	) {
-		assert(predicate);
-		const id = component(predicate);
-		return ecsQuery.expand(ecs.pair(id, object)) as unknown as QueryHandle<
-			[...ExtractQueryTypes<T>, P]
-		>;
-	};
-
+	const queryHandle = {
+		terms: processedTerms,
+		filterWith: processedFilterWith,
+		filterWithout: processedFilterWithout,
+		pair: _queryPair,
+		__iter: _queryIter,
+	} as QueryHandle<ExtractQueryTypes<T>>;
+	setmetatable(queryHandle, queryHandle as LuaMetatable<QueryHandle<ExtractQueryTypes<T>>>);
 	return queryHandle;
 }
 
