@@ -9,12 +9,12 @@ export type Tag = Entity<undefined>;
 
 type Iter<T extends unknown[]> = IterableFunction<LuaTuple<[Entity, ...T]>>;
 
-export interface Query<T extends unknown[]> extends Iter<T> {
+export type Query<T extends unknown[]> = {
 	iter(): Iter<T>;
 	with(...components: Id[]): Query<T>;
 	without(...components: Id[]): Query<T>;
 	expand<U extends Id[]>(...components: U): Query<[...T, ...U]>;
-}
+} & Iter<T>;
 
 type FlattenTuple<T extends any[]> = T extends [infer U] ? U : LuaTuple<T>;
 type Nullable<T extends unknown[]> = { [K in keyof T]: T[K] | undefined };
@@ -27,11 +27,7 @@ export class World {
 	constructor();
 	entity(): Tag;
 	component<T = unknown>(): Entity<T>;
-	target(
-		entity: Entity,
-		relation: Entity,
-		index?: number,
-	): Entity | undefined;
+	target(entity: Entity, relation: Entity, index?: number): Entity | undefined;
 	clear(entity: Entity): void;
 	delete(entity: Entity): void;
 	add<T>(entity: Entity, component: Id<T>): void;
@@ -47,10 +43,7 @@ export class World {
 	parent(entity: Entity): Entity | undefined;
 }
 
-export function pair<P, O, V = P>(
-	pred: Entity<P>,
-	obj: Entity<O>,
-): Pair<P, O, V>;
+export function pair<P, O, V = P>(pred: Entity<P>, obj: Entity<O>): Pair<P, O, V>;
 
 export function IS_PAIR(value: Id): value is Pair;
 export function pair_first<P, O, V = P>(pair: Pair<P, O, V>): Entity<P>;
