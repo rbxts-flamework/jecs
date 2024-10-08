@@ -1,16 +1,15 @@
 # Flamecs
+
 Flamework + ECS = Flamecs 🔥
 
-- Blazingly Stupid
-- Looking for VC funding
-- Use types as components
-- Zero-cost topologically aware functions
-- Built-in Scheduler (soon)
-- Component Metadata (soon)
+-   Blazingly Stupid
+-   Looking for VC funding
+-   Use types as components
+-   Zero-cost topologically aware functions
+-   Built-in Scheduler (soon)
+-   Component Metadata (soon)
 
 ```ts
-import { start, useThrottle, component, spawn, add, has, query } from "@rbxts/flamecs";
-
 const e = spawn<[Vector3]>([new Vector3()]);
 print(has<Vector3>(e));
 
@@ -26,10 +25,37 @@ for (const [e, vec] of query<[Vector3, Without<[CFrame]>]>()) {
 	print(e, vec);
 }
 
-// You can also use pairs but you need to opt into the runtime query interface
-// Use component<T> to generate runtime IDs for your interfaces
+// Example of using pairs
+interface Likes {}
+interface Eats {}
+interface Apple {}
 
-for (const [entity, p0] of query.rt(component<Vector3>()).with(pair(ChildOf, parent))) {
-	print(e, p0);
+const alice = spawn();
+const bob = spawn();
+const charlie = spawn();
+
+const Likes = component<Likes>();
+const Eats = component<Eats>();
+
+registry.set(alice, registry.pair(Likes, bob));
+registry.set(alice, registry.pair(Likes, charlie));
+
+set<Pair<Eats, Apple>>(bob, 3);
+
+for (const [e] of query<[]>().pair<Likes>(bob)) {
+	const liked = target<Likes>(e);
+	print(`${e} likes ${liked}`);
+}
+
+for (const [e, amount] of query<[Pair<Eats, Apple>]>()) {
+	const eatsTarget = target<Eats>(e);
+	print(`${e} eats ${amount} ${eatsTarget}`);
+}
+
+// Using Pair<P> to match any target (wildcard)
+// equivelant to Pair<Likes, Wildcard>
+for (const [e] of query<[Pair<Likes>]>()) {
+	const likedTarget = target<Likes>(e);
+	print(`${e} likes ${likedTarget}`);
 }
 ```
