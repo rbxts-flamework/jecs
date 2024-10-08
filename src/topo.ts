@@ -1,116 +1,72 @@
-import type { Modding } from "@flamework/core";
+type Cleanup<T> = (state: T) => boolean;
 
-interface State {
-	cleanup: Callback;
-	state: Record<string, unknown>;
+interface State<T> {
+	cleanup: Cleanup<T>;
+	state: Record<string, T>;
 }
 
 interface StackFrame {
-	node: Record<string, State>;
+	node: Record<string, State<unknown>>;
+	accessedKeys: Set<string>;
 }
 
-const stack: Array<StackFrame> = [];
-
-function addStackFrame(node: Record<string, State>): void {
-	const frame: StackFrame = {
-		node,
-	};
-	stack.push(frame);
-}
-
-function popStackFrame(): void {
-	stack.pop();
-}
+const stack: StackFrame[] = [];
 
 function cleanupAll(): void {
 	const current = stack[stack.size() - 1]!;
 
-	for (const [key] of pairs(current.node)) {
-		const state = current.node[key]!;
-		for (const [discriminator] of pairs(state.state)) {
-			state.cleanup(state.state[discriminator]);
+	for (const [key, state] of pairs(current.node)) {
+		for (const [discriminator, value] of pairs(state.state)) {
+			const compositeKey = `${key}:${discriminator}`;
+			if (!current.accessedKeys.has(compositeKey) && state.cleanup(value)) {
+				delete state.state[discriminator];
+			}
 		}
 	}
 }
 
-export function start(node: Record<string, State>, func: () => void): void {
-	addStackFrame(node);
+/**
+ * Starts a new stack frame for a function, ensuring cleanup after execution.
+ * Intended to be used in systems.
+ *
+ * @param node - The node to store the state for the current function.
+ * @param func - The function to execute within the new stack frame.
+ * @returns - The function to execute within the new stack frame.
+ */
+export function start(node: Record<string, State<unknown>>, func: () => void): void {
+	stack.push({ node, accessedKeys: new Set() });
 	func();
 	cleanupAll();
-	popStackFrame();
+	stack.pop();
 }
 
-// eslint-disable-next-line ts/explicit-function-return-type -- Returns unknown.
-export function useHookState(
-	key: string,
-	discriminator: unknown,
-	callback: (state: unknown) => void,
-) {
+/**
+ * Creates or retrieves a state object for a hook, keyed by a unique identifier.
+ *
+ * @param key A unique string identifier for the hook state.
+ * @param discriminator An optional value to further distinguish different states within the same key. Defaults to the key itself.
+ * @param cleanup A function that determines whether the state should be cleaned up. It should return true if the state should be removed.
+ * @returns The state object of type T.
+ */
+export function useHookState<T>(key: string, discriminator: unknown = key, cleanup: Cleanup<T>): T {
 	const current = stack[stack.size() - 1]!;
-	let storage = current.node[key];
+	let storage = current.node[key] as State<T> | undefined;
+
 	if (!storage) {
-		storage = { cleanup: callback, state: {} };
-		current.node[key] = storage;
+		storage = { cleanup, state: {} };
+		current.node[key] = storage as State<unknown>;
 	}
 
-	discriminator ??= key;
 	const stringifiedKey = tostring(discriminator);
+	const compositeKey = `${key}:${stringifiedKey}`;
+	current.accessedKeys.add(compositeKey);
 
 	let state = storage.state[stringifiedKey];
+
 	if (state === undefined) {
-		state = {};
+		state = {} as T;
 		storage.state[stringifiedKey] = state;
 	}
 
 	return state;
-}
-
-interface Storage {
-	expiry: number;
-}
-
-function cleanup(storage: Storage): boolean {
-	return os.clock() < storage.expiry;
-}
-
-interface ThrottleStorage {
-	expiry?: number;
-	time?: number;
-}
-
-const STABLE_DISCRIMINATOR = {};
-
-/**
- * Utility for easy time-based throttling.
- *
- * Accepts a duration, and returns `true` if it has been that long since the
- * last time this function returned `true`. Always returns `true` the first
- * time.
- *
- * @param seconds - The number of seconds to throttle for.
- * @param discriminator -- A unique value to additionally key by.
- * @param key - An automatically generated key to store the throttle state.
- * @returns - Returns true every x seconds, otherwise false.
- * @metadata macro
- */
-export function useThrottle(
-	seconds: number,
-	discriminator?: unknown,
-	key?: Modding.Caller<"uuid">,
-): boolean {
-	assert(key);
-
-	const storage = useHookState(
-		key,
-		discriminator ?? STABLE_DISCRIMINATOR,
-		cleanup as never,
-	) as ThrottleStorage;
-
-	if (storage.time === undefined || os.clock() - storage.time >= seconds) {
-		storage.time = os.clock();
-		storage.expiry = os.clock() + seconds;
-		return true;
-	}
-
-	return false;
 }

@@ -19,7 +19,6 @@
 	"dependencies": {
 		"@flamework/core": "^1.2.3",
 		"@rbxts/flamework-binary-serializer": "^0.6.0",
-		"@rbxts/jecs": "^0.3.2",
 		"rbxts-transformer-flamework": "^1.2.3"
 	},
 	"devDependencies": {

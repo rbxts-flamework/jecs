@@ -2,6 +2,7 @@ import style from "@isentinel/eslint-config";
 
 export default style({
 	rules: {
+		"@typescript-eslint/no-empty-interface": ["error", { allowInterfaces: true }],
 		"import/no-namespace": "off",
 		"max-lines": "error",
 		"max-lines-per-function": "off",
