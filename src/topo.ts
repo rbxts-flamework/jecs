@@ -7,6 +7,7 @@ interface State<T> {
 
 interface StackFrame {
 	node: Map<string, State<unknown>>;
+	accessedKeys: Set<string>;
 }
 
 const stack: StackFrame[] = [];
@@ -14,9 +15,10 @@ const stack: StackFrame[] = [];
 function cleanupAll(): void {
 	const current = stack[stack.size() - 1]!;
 
-	for (const [, state] of current.node) {
+	for (const [key, state] of current.node) {
 		for (const [discriminator, value] of state.state) {
-			if (state.cleanup(value)) {
+			const compositeKey = `${key}:${discriminator}`;
+			if (!current.accessedKeys.has(compositeKey) && state.cleanup(value)) {
 				state.state.delete(discriminator);
 			}
 		}
@@ -32,7 +34,7 @@ function cleanupAll(): void {
  * @returns - The function to execute within the new stack frame.
  */
 export function start(node: Map<string, State<unknown>>, func: () => void): void {
-	stack.push({ node });
+	stack.push({ node, accessedKeys: new Set() });
 	func();
 	cleanupAll();
 	stack.pop();
@@ -56,6 +58,9 @@ export function useHookState<T>(key: string, discriminator: unknown = key, clean
 	}
 
 	const stringifiedKey = tostring(discriminator);
+	const compositeKey = `${key}:${stringifiedKey}`;
+	current.accessedKeys.add(compositeKey);
+
 	let state = storage.state.get(stringifiedKey);
 
 	if (state === undefined) {
