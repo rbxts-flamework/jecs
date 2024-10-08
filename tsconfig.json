@@ -13,9 +13,7 @@
 		"module": "commonjs",
 		"moduleResolution": "Node",
 		"resolveJsonModule": true,
-		"typeRoots": [
-			"node_modules/@rbxts"
-		],
+		"typeRoots": ["node_modules/@rbxts"],
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"noImplicitReturns": true,
@@ -31,7 +29,5 @@
 			}
 		]
 	},
-	"exclude": [
-		"./eslint.config.ts"
-	]
+	"exclude": ["./eslint.config.ts"]
 }
