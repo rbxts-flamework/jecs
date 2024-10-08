@@ -42,7 +42,7 @@ registry.set(alice, registry.pair(Likes, charlie));
 
 set<Pair<Eats, Apple>>(bob, 3);
 
-for (const [e] of query<[]>().pair<Likes>(bob)) {
+for (const [e] of query().pair<Likes>(bob)) {
 	const liked = target<Likes>(e);
 	print(`${e} likes ${liked}`);
 }
