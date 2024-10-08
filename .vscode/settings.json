@@ -19,20 +19,12 @@
 		{ "rule": "*semi", "severity": "off", "fixable": true }
 	],
 	// Enable eslint for all supported languages
-	"eslint.validate": [
-		"typescript",
-		"typescriptreact",
-		"markdown",
-		"json",
-		"jsonc",
-		"yaml",
-		"toml",
-		"luau"
-	],
+	"eslint.validate": ["typescript", "typescriptreact", "markdown", "json", "jsonc", "yaml", "toml", "luau"],
 	// Auto fix
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "always",
 		"source.organizeImports": "never"
 	},
-	"eslint.options": { "flags": ["unstable_ts_config"] }
+	"eslint.options": { "flags": ["unstable_ts_config"] },
+	"editor.defaultFormatter": "esbenp.prettier-vscode"
 }
