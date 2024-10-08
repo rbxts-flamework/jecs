@@ -27,10 +27,8 @@ for (const [e, vec] of query<[Vector3, Without<[CFrame]>]>()) {
 
 // Example of using pairs
 interface Likes {}
+interface Eats {}
 interface Apple {}
-interface Eats {
-	amount: number;
-}
 
 const alice = spawn();
 const bob = spawn();
@@ -42,16 +40,16 @@ const Eats = component<Eats>();
 registry.set(alice, registry.pair(Likes, bob));
 registry.set(alice, registry.pair(Likes, charlie));
 
-set<Pair<Eats, Apple>>(bob, { amount: 3 });
+set<Pair<Eats, Apple>>(bob, 3);
 
 for (const [e] of query().pair<Likes>(bob)) {
 	const liked = target<Likes>(e);
 	print(`${e} likes ${liked}`);
 }
 
-for (const [e, eats] of query<[Pair<Eats, Apple>]>()) {
+for (const [e, amount] of query<[Pair<Eats, Apple>]>()) {
 	const eatsTarget = target<Eats>(e);
-	print(`${e} eats ${eats.amount} ${eatsTarget}`);
+	print(`${e} eats ${amount} ${eatsTarget}`);
 }
 
 // Using Pair<P> to match any target (wildcard)
