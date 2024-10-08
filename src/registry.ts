@@ -237,9 +237,9 @@ export function spawn<T extends Array<unknown>>(
 ): Entity {
 	const entity = registry.entity();
 	if (bundle && keys) {
-		for (const key of keys) {
-			const id = getId(key);
-			registry.set(entity, id, bundle);
+		for (let i = 0; i < keys.size(); i++) {
+			const id = getId(keys[i]);
+			registry.set(entity, id, bundle[i]);
 		}
 	}
 
