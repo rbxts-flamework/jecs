@@ -1,116 +1,51 @@
-import type { Modding } from "@flamework/core";
+type Cleanup<T> = (state: T) => boolean;
 
-interface State {
-	cleanup: Callback;
-	state: Record<string, unknown>;
+interface State<T> {
+	cleanup: Cleanup<T>;
+	state: Map<string, T>;
 }
 
 interface StackFrame {
-	node: Record<string, State>;
+	node: Map<string, State<unknown>>;
 }
 
-const stack: Array<StackFrame> = [];
-
-function addStackFrame(node: Record<string, State>): void {
-	const frame: StackFrame = {
-		node,
-	};
-	stack.push(frame);
-}
-
-function popStackFrame(): void {
-	stack.pop();
-}
+const stack: StackFrame[] = [];
 
 function cleanupAll(): void {
 	const current = stack[stack.size() - 1]!;
 
-	for (const [key] of pairs(current.node)) {
-		const state = current.node[key]!;
-		for (const [discriminator] of pairs(state.state)) {
-			state.cleanup(state.state[discriminator]);
+	for (const [, state] of current.node) {
+		for (const [discriminator, value] of state.state) {
+			if (state.cleanup(value)) {
+				state.state.delete(discriminator);
+			}
 		}
 	}
 }
 
-export function start(node: Record<string, State>, func: () => void): void {
-	addStackFrame(node);
+export function start(node: Map<string, State<unknown>>, func: () => void): void {
+	stack.push({ node });
 	func();
 	cleanupAll();
-	popStackFrame();
+	stack.pop();
 }
 
-// eslint-disable-next-line ts/explicit-function-return-type -- Returns unknown.
-export function useHookState(
-	key: string,
-	discriminator: unknown,
-	callback: (state: unknown) => void,
-) {
+export function useHookState<T>(key: string, discriminator: unknown = key, cleanup: Cleanup<T>): T {
 	const current = stack[stack.size() - 1]!;
-	let storage = current.node[key];
+	let storage = current.node.get(key) as State<T> | undefined;
+
 	if (!storage) {
-		storage = { cleanup: callback, state: {} };
-		current.node[key] = storage;
+		storage = { cleanup, state: new Map() };
+		current.node.set(key, storage as State<unknown>);
 	}
 
-	discriminator ??= key;
 	const stringifiedKey = tostring(discriminator);
+	let state = storage.state.get(stringifiedKey);
 
-	let state = storage.state[stringifiedKey];
 	if (state === undefined) {
-		state = {};
-		storage.state[stringifiedKey] = state;
+		state = {} as T;
+		storage.state.set(stringifiedKey, state);
 	}
 
 	return state;
-}
-
-interface Storage {
-	expiry: number;
-}
-
-function cleanup(storage: Storage): boolean {
-	return os.clock() < storage.expiry;
-}
-
-interface ThrottleStorage {
-	expiry?: number;
-	time?: number;
-}
-
-const STABLE_DISCRIMINATOR = {};
-
-/**
- * Utility for easy time-based throttling.
- *
- * Accepts a duration, and returns `true` if it has been that long since the
- * last time this function returned `true`. Always returns `true` the first
- * time.
- *
- * @param seconds - The number of seconds to throttle for.
- * @param discriminator -- A unique value to additionally key by.
- * @param key - An automatically generated key to store the throttle state.
- * @returns - Returns true every x seconds, otherwise false.
- * @metadata macro
- */
-export function useThrottle(
-	seconds: number,
-	discriminator?: unknown,
-	key?: Modding.Caller<"uuid">,
-): boolean {
-	assert(key);
-
-	const storage = useHookState(
-		key,
-		discriminator ?? STABLE_DISCRIMINATOR,
-		cleanup as never,
-	) as ThrottleStorage;
-
-	if (storage.time === undefined || os.clock() - storage.time >= seconds) {
-		storage.time = os.clock();
-		storage.expiry = os.clock() + seconds;
-		return true;
-	}
-
-	return false;
 }
