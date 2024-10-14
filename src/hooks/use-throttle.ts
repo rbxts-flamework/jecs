@@ -4,7 +4,7 @@ import { useHookState } from "../topo";
 
 interface ThrottleStorage {
 	expiry: number;
-	time: number;
+	time?: number;
 }
 
 function cleanup(storage: ThrottleStorage): boolean {
@@ -18,7 +18,7 @@ function cleanup(storage: ThrottleStorage): boolean {
  * time this function returned `true`. Always returns `true` the first time.
  *
  * @param seconds - The number of seconds to throttle for.
- * @param discriminator - A unique value to additionally key by.
+ * @param discriminator - An optional value to additionally key by.
  * @param key - An automatically generated key to store the throttle state.
  * @returns - Returns true every x seconds, otherwise false.
  * @metadata macro
@@ -29,11 +29,10 @@ export function useThrottle(
 	key?: Modding.Caller<"uuid">,
 ): boolean {
 	assert(key);
-
 	const storage = useHookState<ThrottleStorage>(key, discriminator, cleanup);
 
 	const currentTime = os.clock();
-	if (currentTime - storage.time >= seconds) {
+	if (storage.time === undefined || currentTime - storage.time >= seconds) {
 		storage.time = currentTime;
 		storage.expiry = currentTime + seconds;
 		return true;
