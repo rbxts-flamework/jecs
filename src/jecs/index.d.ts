@@ -24,7 +24,7 @@ type InferComponents<A extends Id[]> = {
 type TupleForWorldGet = [Id] | [Id, Id] | [Id, Id, Id] | [Id, Id, Id, Id];
 
 export class World {
-	constructor();
+	constructor() ;
 	entity(): Tag;
 	component<T = unknown>(): Entity<T>;
 	target(entity: Entity, relation: Entity, index?: number): Entity | undefined;
@@ -35,7 +35,7 @@ export class World {
 	remove<T>(entity: Entity, component: Id<T>): void;
 	get<T extends TupleForWorldGet>(
 		entity: Entity,
-		...components: T
+		...components: T 
 	): FlattenTuple<Nullable<InferComponents<T>>>;
 	has(entity: Entity, ...components: Id[]): boolean;
 	contains(entity: Entity): boolean;
