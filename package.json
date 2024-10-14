@@ -13,6 +13,7 @@
 	],
 	"scripts": {
 		"build": "rbxtsc",
+		"lint": "eslint --max-warnings 0 --flag unstable_ts_config .",
 		"prepublishOnly": "npm run build",
 		"watch": "rbxtsc -w"
 	},
@@ -28,7 +29,7 @@
 		"eslint": "^9.11.0",
 		"jiti": "^2.1.0",
 		"roblox-ts": "^3.0.0",
-		"typescript": "^5.6.2"
+		"typescript": "=5.5.3"
 	},
 	"publishConfig": {
 		"access": "public"
