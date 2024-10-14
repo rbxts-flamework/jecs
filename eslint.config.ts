@@ -8,12 +8,7 @@ export default style(
 			"max-lines-per-function": "off",
 			"no-param-reassign": "off",
 			"sonar/cognitive-complexity": "off",
-			"ts/no-empty-object-type": [
-				"error",
-				{
-					allowInterfaces: "always",
-				},
-			],
+			"ts/no-empty-object-type": "off",
 			"ts/no-non-null-assertion": "off",
 		},
 		typescript: {
