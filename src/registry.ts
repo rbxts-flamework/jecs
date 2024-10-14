@@ -123,7 +123,7 @@ export function getId<T>(key?: ResolveKey<T>): Id<FilterPair<T>> {
 		const object = component(pairKey.obj);
 		const predicate = component(pairKey.pred);
 
-		return ecs.pair(object, predicate);
+		return ecs.pair(predicate, object);
 	}
 
 	return component(key);
