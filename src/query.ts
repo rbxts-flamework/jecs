@@ -1,7 +1,7 @@
 import type { Modding } from "@flamework/core";
+import * as ecs from "@rbxts/jecs";
 
-import * as ecs from "./jecs";
-import type { Entity, FilterPairs, Id, SolveKey } from "./registry";
+import type { Entity, FilterPairs, Id, ResolveKeys } from "./registry";
 import { component, getId, registry } from "./registry";
 
 // Almost full credits to @fireboltofdeath for all of these types.
@@ -36,12 +36,7 @@ type Calculate<T extends Array<unknown>, B extends Bounds = Bounds> = T extends 
 			? Calculate<Skip<T>, PushBound<B, "with", V>>
 			: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
 
-type ToIds<T> = T extends []
-	? undefined
-	: Modding.Many<{
-			[k in keyof T]: SolveKey<T[k]>;
-		}>;
-
+type ToIds<T> = T extends [] ? undefined : ResolveKeys<T>;
 type ExtractQueryTypes<T extends Array<unknown>> = Reconstruct<FilterPairs<Calculate<T>["query"]>>;
 
 type QueryHandle<T extends Array<unknown>> = {
