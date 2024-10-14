@@ -26,5 +26,4 @@
 		"source.organizeImports": "never"
 	},
 	"eslint.options": { "flags": ["unstable_ts_config"] },
-	"editor.defaultFormatter": "esbenp.prettier-vscode"
 }

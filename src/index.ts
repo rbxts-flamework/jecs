@@ -1,26 +1,24 @@
-export * from "./query";
-export * from "./topo";
-
 export * from "./hooks/use-event";
 export * from "./hooks/use-throttle";
-
-export type { Wildcard, ChildOf, Entity, Id, Tag, Pair } from "./registry";
+export * from "./query";
+export type { ChildOf, Entity, Id, Pair, Tag, Wildcard } from "./registry";
 export {
-	registry,
+	add,
 	added,
-	removed,
 	changed,
 	component,
+	despawn,
+	get,
+	has,
+	insert,
+	pair,
+	parent,
+	registry,
+	remove,
+	removed,
 	reserve,
 	set,
-	insert,
-	add,
-	remove,
-	has,
-	get,
 	spawn,
 	target,
-	despawn,
-	parent,
-	pair,
 } from "./registry";
+export * from "./topo";

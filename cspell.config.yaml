@@ -6,4 +6,5 @@ language: en
 words:
   - despawn
   - fireboltofdeath
+  - metatable
   - topo
