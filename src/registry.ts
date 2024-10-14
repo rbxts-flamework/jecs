@@ -18,17 +18,17 @@ export type PairKey<P, O> = Modding.Many<{
 }>;
 
 export type ResolveKey<T> = T extends Pair<infer P, infer O> ? PairKey<P, O> : ComponentKey<T>;
-export type ResolveKeys<T extends Array<unknown>> = {
+export type ResolveKeys<T> = Modding.Many<{
 	[K in keyof T]: ResolveKey<T[K]>;
-};
+}>;
 
 export type FilterPair<T> = T extends Pair<infer P, unknown> ? P : T;
-export type FilterPairs<T extends Array<unknown>> = {
+export type FilterPairs<T> = {
 	[K in keyof T]: FilterPair<T[K]>;
 };
 
-const registry = new ecs.World();
 const components = new Map<string, Entity>();
+export const registry = new ecs.World();
 
 export const signals = {
 	added: new Map<Entity, Signal<[Entity]>>(),
