@@ -1,4 +1,16 @@
 /node_modules
 /out
 /include
+/dist
+
 *.tsbuildinfo
+flamework.build
+sourcemap.json
+
+/*.rbxlx.lock
+/*.rbxl.lock
+**/*.rbx[lm]*
+
+.env
+
+.DS_Store

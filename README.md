@@ -10,54 +10,57 @@ Flamework + ECS = Flamecs 🔥
 -   Component Metadata (soon)
 
 ```ts
-const e = spawn<[Vector3]>([new Vector3()]);
-print(has<Vector3>(e));
+const positionEntity = spawn<[Vector3]>([new Vector3(10, 20, 30)]);
+print(has<Vector3>(positionEntity));
 
 start({}, () => {
 	if (useThrottle(5)) {
-		for (const [entity, vec3, cf] of query<[Vector3, CFrame]>()) {
-			print(entity, vec3, cf);
+		for (const [entity, position, orientation] of query<[Vector3, CFrame]>()) {
+			print(`Entity: ${entity}, Position: ${position}, Orientation: ${orientation}`);
 		}
 	}
 });
 
-for (const [e, vec] of query<[Vector3, Without<[CFrame]>]>()) {
-	print(e, vec);
+for (const [entity, position] of query<[Vector3, Without<[CFrame]>]>()) {
+	print(`Entity: ${entity}, Position: ${position}`);
 }
 
-// Example of using pairs
+// Example of using pair relationships between entities
 interface Likes {}
-interface Eats {}
-interface Apple {}
+interface Eats {
+	count: number;
+}
+
+interface Fruit {}
 
 const alice = spawn();
 const bob = spawn();
 const charlie = spawn();
 
-registry.add(alice, pair<Likes>(bob));
-registry.add(alice, pair<Likes>(charlie));
+const banana = spawn();
+add<Fruit>(banana);
 
-// The type of a pair is determined by its first component in the relationship.
-// In this case, 'Eats' is defined as an empty interface {}.
-// An empty interface is a structural type that matches any object.
-// This allows us to set Pair<Eats, Apple> to 3, though it's not recommended
-// as it effectively becomes an 'any' type, losing type safety.
-set<Pair<Eats, Apple>>(bob, 3);
+add<Pair<Likes>>(alice, bob);
+add<Pair<Likes>>(alice, charlie);
 
-for (const [e] of query().pair<Likes>(bob)) {
-	const liked = target<Likes>(e);
-	print(`${e} likes ${liked}`);
+add<Pair<Likes, Fruit>>(bob);
+
+set<Pair<Eats>>(bob, banana, { count: 5 });
+set<Pair<Eats, Fruit>>(alice, { count: 12 });
+
+for (const [entity] of query().pair<Likes>(alice)) {
+	const likedEntity = target<Likes>(entity);
+	print(`Entity ${entity} likes ${likedEntity}`);
 }
 
-for (const [e, amount] of query<[Pair<Eats, Apple>]>()) {
-	const eatsTarget = target<Eats>(e);
-	print(`${e} eats ${amount} ${eatsTarget}`);
+for (const [entity, eatsData] of query<[Pair<Eats, Fruit>]>()) {
+	const eatsTarget = target<Eats>(entity);
+	print(`Entity ${entity} eats ${eatsData.count} fruit (${eatsTarget})`);
 }
 
-// Using Pair<P> to match any target (wildcard)
-// equivelant to Pair<Likes, Wildcard>
-for (const [e] of query<[Pair<Likes>]>()) {
-	const likedTarget = target<Likes>(e);
-	print(`${e} likes ${likedTarget}`);
+// Using Pair<P> to match any target (wildcard), equivalent to Pair<Likes, Wildcard>
+for (const [entity] of query<[Pair<Likes>]>()) {
+	const likedTarget = target<Likes>(entity);
+	print(`Entity ${entity} likes ${likedTarget}`);
 }
 ```
