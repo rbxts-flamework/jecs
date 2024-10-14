@@ -1,4 +1,5 @@
-import { Modding } from "@flamework/core";
+import type { Modding } from "@flamework/core";
+
 import { useHookState } from "../topo";
 
 interface ThrottleStorage {
@@ -13,8 +14,8 @@ function cleanup(storage: ThrottleStorage): boolean {
 /**
  * Utility for easy time-based throttling.
  *
- * Accepts a duration and returns `true` if it has been that long since the
- * last time this function returned `true`. Always returns `true` the first time.
+ * Accepts a duration and returns `true` if it has been that long since the last
+ * time this function returned `true`. Always returns `true` the first time.
  *
  * @param seconds - The number of seconds to throttle for.
  * @param discriminator - A unique value to additionally key by.
@@ -32,7 +33,7 @@ export function useThrottle(
 	const storage = useHookState<ThrottleStorage>(key, discriminator, cleanup);
 
 	const currentTime = os.clock();
-	if (storage.time === undefined || currentTime - storage.time >= seconds) {
+	if (currentTime - storage.time >= seconds) {
 		storage.time = currentTime;
 		storage.expiry = currentTime + seconds;
 		return true;

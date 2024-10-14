@@ -1,19 +1,29 @@
-import style from "@isentinel/eslint-config";
+import style, { GLOB_MARKDOWN } from "@isentinel/eslint-config";
 
-export default style({
-	rules: {
-		"@typescript-eslint/no-empty-interface": ["error", { allowInterfaces: true }],
-		"import/no-namespace": "off",
-		"max-lines": "error",
-		"max-lines-per-function": "off",
-		"no-param-reassign": "off",
-		"sonar/cognitive-complexity": "off",
-		"ts/no-non-null-assertion": "off",
-	},
-	typescript: {
-		parserOptions: {
-			project: "tsconfig.eslint.json",
+export default style(
+	{
+		rules: {
+			"import/no-namespace": "off",
+			"max-lines": "error",
+			"max-lines-per-function": "off",
+			"no-param-reassign": "off",
+			"sonar/cognitive-complexity": "off",
+			"ts/no-empty-object-type": [
+				"error",
+				{
+					allowInterfaces: "always",
+				},
+			],
+			"ts/no-non-null-assertion": "off",
 		},
-		tsconfigPath: "tsconfig.eslint.json",
+		typescript: {
+			parserOptions: {
+				project: "tsconfig.eslint.json",
+			},
+			tsconfigPath: "tsconfig.eslint.json",
+		},
 	},
-});
+	{
+		ignores: ["src/jecs/**", GLOB_MARKDOWN],
+	},
+);

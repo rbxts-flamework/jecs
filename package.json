@@ -3,7 +3,7 @@
 	"version": "0.1.0-rc.7",
 	"description": "",
 	"keywords": [],
-	"license": "ISC",
+	"license": "MIT",
 	"author": "",
 	"main": "out/init.lua",
 	"types": "out/index.d.ts",
@@ -13,7 +13,9 @@
 	],
 	"scripts": {
 		"build": "rbxtsc",
+		"lint": "eslint --max-warnings 0 --flag unstable_ts_config .",
 		"prepublishOnly": "npm run build",
+		"release": "bumpp && npm publish --access public",
 		"watch": "rbxtsc -w"
 	},
 	"dependencies": {
@@ -24,11 +26,12 @@
 	"devDependencies": {
 		"@isentinel/eslint-config": "^0.8.0",
 		"@rbxts/compiler-types": "^3.0.0-types.0",
-		"@rbxts/types": "^1.0.809",
-		"eslint": "^9.11.0",
-		"jiti": "^2.1.0",
+		"@rbxts/types": "^1.0.813",
+		"bumpp": "9.7.1",
+		"eslint": "^9.12.0",
+		"jiti": "^2.3.0",
 		"roblox-ts": "^3.0.0",
-		"typescript": "^5.6.2"
+		"typescript": "=5.5.3"
 	},
 	"publishConfig": {
 		"access": "public"
