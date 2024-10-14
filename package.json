@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"@flamework/core": "^1.2.3",
-		"@rbxts/flamework-binary-serializer": "^0.6.0",
+		"@rbxts/jecs": "github:Ukendio/jecs",
 		"rbxts-transformer-flamework": "^1.2.3"
 	},
 	"devDependencies": {
