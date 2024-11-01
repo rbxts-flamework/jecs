@@ -16,7 +16,8 @@
 		"lint": "eslint --max-warnings 0 --flag unstable_ts_config .",
 		"prepublishOnly": "npm run build",
 		"release": "bumpp && npm publish --access public",
-		"watch": "rbxtsc -w"
+		"watch": "rbxtsc -w",
+		"prepare": "rbxtsc"
 	},
 	"dependencies": {
 		"@flamework/core": "^1.2.3",
