@@ -23,9 +23,9 @@ export type ResolveKeys<T> = Modding.Many<{
 }>;
 
 export type FilterPair<T> = T extends Pair<infer P, unknown> ? P : T;
-export type FilterPairs<T> = {
+export type FilterPairs<T> = Modding.Many<{
 	[K in keyof T]: FilterPair<T[K]>;
-};
+}>;
 
 const components = new Map<string, Entity>();
 export const registry = new ecs.World();
