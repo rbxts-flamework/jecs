@@ -29,7 +29,7 @@ npm install @rbxts/flamecs
 
 The Flamework transformer must be configured in your `tsconfig.json`. The fields should be placed inside of the `compilerOptions` object.
 
-```json
+```jsonc
 {
 	"compilerOptions": {
 		// Add `node_modules/@flamework` into your `typeRoots` field.
