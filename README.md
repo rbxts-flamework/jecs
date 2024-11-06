@@ -18,7 +18,7 @@ This package is an extension of Flamework and it must be installed and configure
 You can install all the necessary packages using the following command.
 
 ```bash
-npm install -D rbxts-transformer-flamework@latest
+npm install -D rbxts-transformer-flamework
 npm install @flamework/core
 
 # Install flamecs, if it isn't already
@@ -27,7 +27,7 @@ npm install @rbxts/flamecs
 
 ### Configure the transformer
 
-The Flamework transformer must be configured in your `tsconfig.json`. The `plugins` field shoukd be placed inside of the `compilerOptions` object.
+The Flamework transformer must be configured in your `tsconfig.json`. The fields should be placed inside of the `compilerOptions` object.
 
 ```json
 {
