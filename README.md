@@ -38,9 +38,9 @@ The Flamework transformer must be configured in your `tsconfig.json`. The fields
 		// Copy the following fields
 		"experimentalDecorators": true,
 		"plugins": [
-            {
-                "transform": "rbxts-transformer-flamework",
-            },
+			{
+				"transform": "rbxts-transformer-flamework",
+			},
 		]
 	}
 }
