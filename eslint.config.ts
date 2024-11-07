@@ -19,6 +19,6 @@ export default style(
 		},
 	},
 	{
-		ignores: ["src/jecs/**", GLOB_MARKDOWN],
+		ignores: [GLOB_MARKDOWN],
 	},
 );

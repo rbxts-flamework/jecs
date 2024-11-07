@@ -28,7 +28,11 @@ export type FilterPairs<T> = {
 };
 
 const components = new Map<string, Entity>();
-export const registry = new ecs.World();
+
+let registry = new ecs.World();
+export function getRegistry(): ecs.World {
+	return registry;
+}
 
 export const signals = {
 	added: new Map<Entity, Signal<[Entity]>>(),
@@ -469,3 +473,14 @@ export function pair<P>(object: Entity, predicate?: ComponentKey<P>): Pair<P, un
 
 reserve<Wildcard>(ecs.Wildcard as Entity<Wildcard>);
 reserve<ChildOf>(ecs.ChildOf as Entity<ChildOf>);
+
+/**
+ * Destroys the current world and all associated entities, and resets the
+ * registry to a new world.
+ *
+ * @note This function should likely only be used for testing purposes.
+ */
+export function destroy(): void {
+	components.clear();
+	registry = new ecs.World();
+}

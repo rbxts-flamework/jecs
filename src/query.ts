@@ -2,7 +2,7 @@ import type { Modding } from "@flamework/core";
 import * as ecs from "@rbxts/jecs";
 
 import type { Entity, FilterPairs, Id, ResolveKeys } from "./registry";
-import { component, getId, registry } from "./registry";
+import { component, getId, getRegistry } from "./registry";
 
 // Almost full credits to @fireboltofdeath for all of these types.
 export interface Without<T> {
@@ -72,7 +72,7 @@ function queryIter<T extends Array<unknown>>(
 	this: QueryHandle<T>,
 ): IterableFunction<LuaTuple<[Entity, ...T]>> {
 	if (this.terms) {
-		let ecsQuery = registry.query(...this.terms);
+		let ecsQuery = getRegistry().query(...this.terms);
 
 		if (this.filterWithout) {
 			ecsQuery = ecsQuery.without(...this.filterWithout);
@@ -134,5 +134,5 @@ export function query<T extends Array<unknown> = []>(
  *   specified components.
  */
 export function queryRuntimeIds<T extends Array<Id>>(...ids: T): ecs.Query<ecs.InferComponents<T>> {
-	return registry.query(...ids);
+	return getRegistry().query(...ids);
 }
