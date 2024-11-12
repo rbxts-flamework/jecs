@@ -29,5 +29,5 @@
 			}
 		]
 	},
-	"exclude": ["./eslint.config.ts"]
+	"exclude": ["./eslint.config.ts", "out"]
 }
