@@ -1,7 +1,6 @@
-import type { Modding } from "@flamework/core";
 import * as ecs from "@rbxts/jecs";
 
-import type { Entity, FilterPairs, Id, ResolveKeys } from "./registry";
+import type { ComponentKey, Entity, Id, ResolveKeys, ResolveValues, Unwrap } from "./registry";
 import { component, getId, registry } from "./registry";
 
 // Almost full credits to @fireboltofdeath for all of these types.
@@ -37,7 +36,10 @@ type Calculate<T extends Array<unknown>, B extends Bounds = Bounds> = T extends 
 			: Calculate<Skip<T>, PushBound<B, "query", T[0]>>;
 
 type ToIds<T> = T extends [] ? undefined : ResolveKeys<T>;
-type ExtractQueryTypes<T extends Array<unknown>> = Reconstruct<FilterPairs<Calculate<T>["query"]>>;
+
+type ExtractQueryTypes<T extends Array<unknown>> = Reconstruct<
+	ResolveValues<Calculate<T>["query"]>
+>;
 
 type QueryHandle<T extends Array<unknown>> = {
 	__iter(): IterableFunction<LuaTuple<[Entity, ...T]>>;
@@ -53,19 +55,19 @@ type QueryHandle<T extends Array<unknown>> = {
 	 * @returns A new QueryHandle with the pair filter added.
 	 * @metadata macro
 	 */
-	pair<P>(object: Entity, predicate?: Modding.Generic<P, "id">): QueryHandle<[...T, P]>;
+	pair<P>(object: Entity, predicate?: ComponentKey<P>): QueryHandle<[...T, Unwrap<P>]>;
 	terms?: Array<Id>;
 } & IterableFunction<LuaTuple<[Entity, ...T]>>;
 
 function queryPair<T extends Array<unknown>, P>(
 	this: QueryHandle<T>,
 	object: Entity,
-	predicate?: Modding.Generic<P, "id">,
-): QueryHandle<[...T, P]> {
+	predicate?: ComponentKey<P>,
+): QueryHandle<[...T, Unwrap<P>]> {
 	assert(predicate);
 	const id = ecs.pair(component(predicate), object);
 	this.terms = this.terms ? [...this.terms, id] : [id];
-	return this as unknown as QueryHandle<[...T, P]>;
+	return this as unknown as QueryHandle<[...T, Unwrap<P>]>;
 }
 
 function queryIter<T extends Array<unknown>>(

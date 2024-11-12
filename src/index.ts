@@ -1,7 +1,7 @@
 export * from "./hooks/use-event";
 export * from "./hooks/use-throttle";
 export * from "./query";
-export type { ChildOf, Entity, Id, Pair, Tag, Wildcard } from "./registry";
+export type { ChildOf, Entity, Id, Name, Pair, Tag, Wildcard, Wrap } from "./registry";
 export {
 	add,
 	added,
@@ -17,6 +17,7 @@ export {
 	remove,
 	removed,
 	reserve,
+	reset,
 	set,
 	spawn,
 	target,
