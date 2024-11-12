@@ -67,66 +67,6 @@ You should find the entry for `node_modules` and modify it to include `@flamewor
 
 You may need to delete the `out` folder and recompile for Flamework's transformer to begin working. Afterwards, you are ready to use flamecs.
 
-## Demo
-
-## Installation
-
-This package is an extension of Flamework and it must be installed and configured. If Flamework is already installed, you can install `@rbxts/flamecs` and skip these steps.
-
-### Install Flamework packages
-
-You can install all the necessary packages using the following command.
-
-```bash
-npm install -D rbxts-transformer-flamework
-npm install @flamework/core
-
-# Install flamecs, if it isn't already
-npm install @rbxts/flamecs
-```
-
-### Configure the transformer
-
-The Flamework transformer must be configured in your `tsconfig.json`. The fields should be placed inside of the `compilerOptions` object.
-
-```jsonc
-{
-	"compilerOptions": {
-		// Add `node_modules/@flamework` into your `typeRoots` field.
-		"typeRoots": ["node_modules/@rbxts", "node_modules/@flamework"],
-
-		// Copy the following fields
-		"experimentalDecorators": true,
-		"plugins": [
-			{
-				"transform": "rbxts-transformer-flamework",
-			},
-		],
-	},
-}
-```
-
-### Configure your Rojo project
-
-Flamework uses a custom npm org and must be configured in your `default.project.json`.
-
-You should find the entry for `node_modules` and modify it to include `@flamework`. It should look something like this:
-
-```json
-"node_modules": {
-	"@rbxts": {
-		"$path": "node_modules/@rbxts"
-	},
-	"@flamework": {
-		"$path": "node_modules/@flamework"
-	}
-}
-```
-
-### Recompile
-
-You may need to delete the `out` folder and recompile for Flamework's transformer to begin working. Afterwards, you are ready to use flamecs.
-
 ## Components
 
 ```typescript
