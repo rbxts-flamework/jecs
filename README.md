@@ -41,8 +41,8 @@ The Flamework transformer must be configured in your `tsconfig.json`. The fields
 			{
 				"transform": "rbxts-transformer-flamework",
 			},
-		]
-	}
+		],
+	},
 }
 ```
 
@@ -67,60 +67,135 @@ You should find the entry for `node_modules` and modify it to include `@flamewor
 
 You may need to delete the `out` folder and recompile for Flamework's transformer to begin working. Afterwards, you are ready to use flamecs.
 
-## Demo
+## Components
 
-```ts
-const positionEntity = spawn<[Vector3]>([new Vector3(10, 20, 30)]);
-print(has<Vector3>(positionEntity));
+```typescript
+interface Position {
+	x: number;
+	y: number;
+}
 
-start({}, () => {
-	if (useThrottle(5)) {
-		for (const [entity, position, orientation] of query<[Vector3, CFrame]>()) {
-			print(`Entity: ${entity}, Position: ${position}, Orientation: ${orientation}`);
-		}
-	}
+// Tag (no data)
+interface Player extends Tag {}
+
+// Components can be wrapped to use non-table data
+interface Name extends Wrap<string> {}
+interface Health extends Wrap<number> {}
+```
+
+## Entities
+
+### Spawning Entities
+
+```typescript
+const entity = spawn();
+
+// When spawning with tags the bundle list can be omitted
+const marcus = spawn<[Player]>();
+
+const ketchup = spawn<[Position, Player]>([{ x: 0, y: 0 }]);
+
+// Get the runtime entity id from a component
+const positionComponent = component<Position>();
+```
+
+### Modifying Entities
+
+```typescript
+add<Player>(entity);
+
+set<Position>(entity, { x: 10, y: 20 });
+set<Name>(entity, "Alice");
+
+// Insert can be used to add/set multiple components
+insert<[Name, Health, Player]>(entity, ["Bob", 100]);
+
+remove<Player>(entity);
+
+if (has<Player>(entity)) {
+	// ...
+}
+
+const pos = get<Position>(entity);
+const name = get<Name>(entity);
+
+despawn(entity);
+```
+
+## Queries
+
+```typescript
+for (const [entity, pos, name] of query<[Position, Name]>()) {
+	print(`${name} at ${pos.x}, ${pos.y}`);
+}
+
+for (const [entity, pos] of query<[Position, Without<Player>]>()) {
+	// ...
+}
+
+for (const [entity, pos] of query<[Position, With<[Player, Health]>]>()) {
+	// ...
+}
+```
+
+## Relationships
+
+### Defining Relationships
+
+```typescript
+interface Likes extends Tag {}
+interface Owns extends Wrap<number> {}
+
+// Alice likes Bob
+add<Pair<Likes>>(alice, bob);
+
+// Alice owns 5 items
+set<Pair<Owns, Item>>(alice, 5);
+```
+
+### Querying Relationships
+
+```typescript
+// Query all entities that like something Pair<Likes, Wildcard>
+for (const [entity] of query<[Pair<Likes>]>()) {
+	const target = target<Likes>(entity);
+	print(`${entity} likes ${target}`);
+}
+
+// Query specific relationships where the object is a runtime id
+for (const [entity] of query().pair<Likes>(bob)) {
+	// ...
+}
+```
+
+## Signals
+
+```typescript
+added<Position>().connect((entity) => {
+	print(`Position added to ${entity}`);
 });
 
-for (const [entity, position] of query<[Vector3, Without<[CFrame]>]>()) {
-	print(`Entity: ${entity}, Position: ${position}`);
-}
+removed<Position>().connect((entity) => {
+	print(`Position removed from ${entity}`);
+});
 
-// Example of using pair relationships between entities
-interface Likes {}
-interface Eats {
-	count: number;
-}
+changed<Position>().connect((entity, newValue) => {
+	print(`Position of ${entity} changed to ${newValue}`);
+});
+```
 
-interface Fruit {}
+## Hooks and Systems
 
-const alice = spawn();
-const bob = spawn();
-const charlie = spawn();
+```typescript
+// Hooks must be used within a `start()` function.
+start({}, () => {
+	if (useThrottle(0.5)) {
+		// ...
+	}
 
-const banana = spawn();
-add<Fruit>(banana);
-
-add<Pair<Likes>>(alice, bob);
-add<Pair<Likes>>(alice, charlie);
-
-add<Pair<Likes, Fruit>>(bob);
-
-set<Pair<Eats>>(bob, banana, { count: 5 });
-set<Pair<Eats, Fruit>>(alice, { count: 12 });
-
-for (const [entity] of query().pair<Likes>(alice)) {
-	const likedEntity = target<Likes>(entity);
-	print(`Entity ${entity} likes ${likedEntity}`);
-}
-
-for (const [entity, eatsData] of query<[Pair<Eats, Fruit>]>()) {
-	const eatsTarget = target<Eats>(entity);
-	print(`Entity ${entity} eats ${eatsData.count} fruit (${eatsTarget})`);
-}
-
-// Using Pair<P> to match any target (wildcard), equivalent to Pair<Likes, Wildcard>
-for (const [entity] of query<[Pair<Likes>]>()) {
-	const likedTarget = target<Likes>(entity);
-	print(`Entity ${entity} likes ${likedTarget}`);
-}
+	for (const [player] of useEvent(Players.PlayerAdded)) {
+		const entity = spawn<[Name, Player]>([player.Name]);
+		// ...
+	}
+});
 ```
