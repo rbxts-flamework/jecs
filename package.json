@@ -21,15 +21,18 @@
 	},
 	"dependencies": {
 		"@flamework/core": "^1.2.3",
-		"@rbxts/jecs": "github:Ukendio/jecs",
+		"@rbxts/jecs": "^0.4.1-rc.0",
 		"rbxts-transformer-flamework": "^1.2.3"
 	},
 	"devDependencies": {
+		"@eslint/js": "^9.14.0",
 		"@isentinel/eslint-config": "^0.8.0",
 		"@rbxts/compiler-types": "^3.0.0-types.0",
 		"@rbxts/types": "^1.0.813",
 		"bumpp": "9.7.1",
-		"eslint": "^9.12.0",
+		"eslint": "^9.14.0",
+		"eslint-plugin-react": "^7.37.2",
+		"globals": "^15.12.0",
 		"jiti": "^2.3.0",
 		"roblox-ts": "^3.0.0",
 		"typescript": "=5.5.3"
