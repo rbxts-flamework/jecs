@@ -1,77 +1,83 @@
-import { query } from "./query";
-import { Entity, Pair, registry, spawn, Tag } from "./registry";
-import { Flamework, Modding } from "@flamework/core";
+import type { OnInit } from "@flamework/core";
+import { Controller, Modding, Service } from "@flamework/core";
 
-export interface OnStart {
-	OnStart(): void;
-}
+import { start } from "./topo";
 
 export interface PreRender {
-	PreRender(dt: number): void;
+	preRender(dt: number): void;
 }
 
 export interface PreAnimation {
-	PreAnimation(dt: number): void;
+	preAnimation(dt: number): void;
 }
 
 export interface PreUpdate {
-	PreUpdate(dt: number): void;
+	preUpdate(dt: number): void;
 }
 
 export interface OnUpdate {
-	OnUpdate(dt: number): void;
+	onUpdate(dt: number): void;
 }
 
 export interface PostUpdate {
-	PostUpdate(dt: number): void;
+	postUpdate(dt: number): void;
 }
 
-const onStarts = new Array<OnStart>();
-Modding.onListenerAdded<OnStart>((object) => onStarts.push(object));
+/** @metadata macro */
+function getLifecycleSet<T>(id?: Modding.Generic<T, "id">): Set<T> {
+	const set = new Set<T>();
+	Modding.onListenerAdded<T>(value => set.add(value), id);
+	Modding.onListenerRemoved<T>(value => set.delete(value), id);
+	return set;
+}
 
 const RunService = game.GetService("RunService");
 
-export function start() {
-	for (const object of onStarts) {
-		object.OnStart();
+@Controller()
+@Service()
+export class Scheduler implements OnInit {
+	public onInit(): void {
+		const preRender = getLifecycleSet<PreRender>();
+		RunService.PreRender.Connect(dt => {
+			for (const object of preRender) {
+				start({}, () => {
+					object.preRender(dt);
+				});
+			}
+		});
+
+		const preAnimation = getLifecycleSet<PreAnimation>();
+		RunService.PreAnimation.Connect(dt => {
+			for (const object of preAnimation) {
+				start({}, () => {
+					object.preAnimation(dt);
+				});
+			}
+		});
+
+		const preUpdates = getLifecycleSet<PreUpdate>();
+		RunService.PreSimulation.Connect(dt => {
+			for (const object of preUpdates) {
+				start({}, () => {
+					object.preUpdate(dt);
+				});
+			}
+		});
+
+		const onUpdates = getLifecycleSet<OnUpdate>();
+		const postUpdates = getLifecycleSet<PostUpdate>();
+		RunService.Heartbeat.Connect(dt => {
+			for (const object of onUpdates) {
+				start({}, () => {
+					object.onUpdate(dt);
+				});
+			}
+
+			for (const object of postUpdates) {
+				start({}, () => {
+					object.postUpdate(dt);
+				});
+			}
+		});
 	}
-
-	const preRender = new Array<PreRender>();
-	Modding.onListenerAdded<PreRender>((object) => preRender.push(object));
-	RunService.PreRender.Connect((dt) => {
-		for (const obj of preRender) {
-			obj.PreRender(dt);
-		}
-	});
-
-	const preAnimation = new Array<PreAnimation>();
-	const preUpdates = new Array<PreUpdate>();
-
-	const onUpdates = new Array<OnUpdate>();
-	const postUpdates = new Array<PostUpdate>();
-
-	Modding.onListenerAdded<PreAnimation>((object) => preAnimation.push(object));
-	RunService.PreRender.Connect((dt) => {
-		for (const obj of preAnimation) {
-			obj.PreAnimation(dt);
-		}
-	});
-
-	Modding.onListenerAdded<PreUpdate>((object) => preUpdates.push(object));
-	RunService.PreSimulation.Connect((dt) => {
-		for (const obj of preUpdates) {
-			obj.PreUpdate(dt);
-		}
-	});
-
-	Modding.onListenerAdded<OnUpdate>((object) => onUpdates.push(object));
-	Modding.onListenerAdded<PostUpdate>((object) => postUpdates.push(object));
-	RunService.Heartbeat.Connect((dt) => {
-		for (const obj of onUpdates) {
-			obj.OnUpdate(dt);
-		}
-		for (const obj of postUpdates) {
-			obj.PostUpdate(dt);
-		}
-	});
 }
