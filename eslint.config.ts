@@ -4,6 +4,10 @@ export default style(
 	{
 		rules: {
 			"import/no-namespace": "off",
+			"jsdoc/require-description": "off",
+			"jsdoc/require-param": "off",
+			"jsdoc/require-returns": "off",
+			"jsdoc/require-template": "off",
 			"max-lines": "error",
 			"max-lines-per-function": "off",
 			"no-param-reassign": "off",
