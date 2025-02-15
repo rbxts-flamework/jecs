@@ -94,10 +94,10 @@ function hookListeners(id: Entity): void {
 	signals.removed.set(id, removedSignal);
 	signals.changed.set(id, changedSignal);
 
-	registry.set(id, ecs.OnAdd, entity => {
+	registry.set(id, ecs.OnAdd, (entity) => {
 		addedSignal.fire(entity);
 	});
-	registry.set(id, ecs.OnRemove, entity => {
+	registry.set(id, ecs.OnRemove, (entity) => {
 		removedSignal.fire(entity);
 	});
 	registry.set(id, ecs.OnSet, (entity, data) => {
@@ -161,7 +161,7 @@ export function getId<T>(key?: ResolveKey<T>): Id<ResolveValue<T>> {
 		const object = component(pairKey.obj);
 		const predicate = component(pairKey.pred);
 
-		return ecs.pair(predicate, object);
+		return ecs.pair(predicate, object) as never;
 	}
 
 	return component(key);
@@ -213,14 +213,14 @@ export function spawn<T extends Array<unknown>>(argument1?: unknown, argument2?:
 			if (value !== undefined) {
 				registry.set(entity, id, value);
 			} else {
-				registry.add(entity, id);
+				registry.add(entity, id as never);
 			}
 		}
 	} else if (argument1 !== undefined) {
 		// Spawn with tags only: spawn(keys)
 		const keys = argument1 as ResolveKeys<T>;
 		for (const key of keys) {
-			registry.add(entity, getId(key));
+			registry.add(entity, getId(key) as never);
 		}
 	}
 
@@ -278,14 +278,14 @@ export function insert<T extends Array<unknown>>(
 			if (value !== undefined) {
 				registry.set(entity, id, value);
 			} else {
-				registry.add(entity, id);
+				registry.add(entity, id as never);
 			}
 		}
 	} else {
 		// Insert tags only: insert(entity, keys)
 		const keys = argument1 as ResolveKeys<T>;
 		for (const key of keys) {
-			registry.add(entity, getId(key));
+			registry.add(entity, getId(key) as never);
 		}
 	}
 }
@@ -331,11 +331,11 @@ export function add(entity: Entity, argument1?: unknown, argument2?: unknown): v
 		// Pair<P, _> case: add(entity, object, key)
 		const object = argument1 as Entity;
 		const key = argument2 as ComponentKey<unknown>;
-		registry.add(entity, ecs.pair(component(key), object));
+		registry.add(entity, ecs.pair(component(key), object) as never);
 	} else {
 		// Known component case: add(entity, key)
 		const key = argument1 as ResolveKey<unknown>;
-		registry.add(entity, getId(key));
+		registry.add(entity, getId(key) as never);
 	}
 }
 
