@@ -100,7 +100,7 @@ function hookListeners(id: Entity): void {
 	registry.set(id, ecs.OnRemove, (entity) => {
 		removedSignal.fire(entity);
 	});
-	registry.set(id, ecs.OnSet, (entity, data) => {
+	registry.set(id, ecs.OnChange, (entity, data) => {
 		changedSignal.fire(entity, data);
 	});
 }
